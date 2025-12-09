@@ -81,7 +81,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - Convention: This project uses `bun run typecheck` (tsc --noEmit) and `bun run build` for verification
 - The `formatWorkspaceEdit` function still exists in utils.ts - it's exported but just not used in tools.ts
 
-소요 시간: ~2분
+Time spent: ~2min
 
 ---
 
@@ -110,7 +110,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - `ThinkingPart` interface vs `ThinkingPartType` type vs `prependThinkingPart` function - different entities, verify before removing
 - `fallbackRevertStrategy` was likely a planned feature that never got integrated into the recovery flow
 
-소요 시간: ~2분
+Time spent: ~2min
 
 ---
 
@@ -137,7 +137,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - `createBuiltinMcps` function vs `builtinMcps` export - function is used, direct export is not
 - Internal const `allBuiltinMcps` should be kept since it's referenced by the function
 
-소요 시간: ~2분
+Time spent: ~2min
 
 ---
 
@@ -165,7 +165,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - Logger uses `fs.appendFileSync` for synchronous file writing
 - Empty catch block intentionally swallows errors to prevent logging from breaking main operations
 
-소요 시간: ~1분
+Time spent: ~1min
 
 ---
 
@@ -193,7 +193,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - Command: `bun run typecheck` for type check, `bun run build` for build
 - skill-loader internal imports use relative paths (`../command-loader/types`) which remain valid after rename
 
-소요 시간: ~2분
+Time spent: ~2min
 
 ---
 
@@ -221,7 +221,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - When renaming shared modules, must update ALL dependent modules' imports
 - Task 2 and Task 3 have an implicit dependency through the type import
 
-소요 시간: ~2분
+Time spent: ~2min
 
 ---
 
@@ -249,7 +249,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - Agent configs loaded from `~/.claude/agents/` (user) and `.claude/agents/` (project)
 - Scope is appended to description: `(user)` or `(project)`
 
-소요 시간: ~1분
+Time spent: ~1min
 
 ---
 
@@ -282,7 +282,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - Later scope overrides earlier scope for same server name
 - Supports stdio, http, and sse server types
 
-소요 시간: ~1분
+Time spent: ~1min
 
 ---
 
@@ -312,7 +312,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - Uses barrel export pattern: index.ts re-exports everything from types, state, detector
 - Source directory: `~/local-workspaces/opencode-cc-plugin/src/features/session-state/`
 
-소요 시간: ~1분
+Time spent: ~1min
 
 ---
 
@@ -356,7 +356,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - MCP result has `.servers` property that returns the server configs
 - Order matters in spread: later values override earlier (projectAgents > userAgents > builtinAgents)
 
-소요 시간: ~4분
+Time spent: ~4min
 
 ---
 
@@ -392,7 +392,7 @@ All tasks execution STARTED: Thu Dec 4 16:52:57 KST 2025
 - Existing features: Terminal Title, Command Loader, Skill Loader
 - Documentation style: bold feature name, bullet points for scopes/details
 
-소요 시간: ~1분
+Time spent: ~1min
 
 ---
 
