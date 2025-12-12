@@ -42,7 +42,7 @@ import { builtinTools, createCallOmoAgent, createBackgroundTools } from "./tools
 import { BackgroundManager } from "./features/background-agent";
 import { createBuiltinMcps } from "./mcp";
 import { OhMyOpenCodeConfigSchema, type OhMyOpenCodeConfig } from "./config";
-import { log } from "./shared/logger";
+import { log, deepMerge } from "./shared";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
@@ -82,50 +82,6 @@ function loadConfigFromPath(configPath: string): OhMyOpenCodeConfig | null {
   return null;
 }
 
-function mergeAgentOverrideConfig(
-  base: OhMyOpenCodeConfig["agents"][keyof OhMyOpenCodeConfig["agents"]],
-  override: OhMyOpenCodeConfig["agents"][keyof OhMyOpenCodeConfig["agents"]]
-): OhMyOpenCodeConfig["agents"][keyof OhMyOpenCodeConfig["agents"]] {
-  if (!base) return override;
-  if (!override) return base;
-
-  return {
-    ...base,
-    ...override,
-    tools:
-      override.tools !== undefined || base.tools !== undefined
-        ? { ...(base.tools ?? {}), ...(override.tools ?? {}) }
-        : undefined,
-    permission:
-      override.permission !== undefined || base.permission !== undefined
-        ? { ...(base.permission ?? {}), ...(override.permission ?? {}) }
-        : undefined,
-  };
-}
-
-function mergeAgentOverrides(
-  base: OhMyOpenCodeConfig["agents"],
-  override: OhMyOpenCodeConfig["agents"]
-): OhMyOpenCodeConfig["agents"] {
-  if (!base && !override) return undefined;
-  if (!base) return override;
-  if (!override) return base;
-
-  const allAgentNames = [
-    ...new Set([...Object.keys(base), ...Object.keys(override)]),
-  ] as Array<keyof NonNullable<OhMyOpenCodeConfig["agents"]>>;
-
-  const result: OhMyOpenCodeConfig["agents"] = {};
-
-  for (const agentName of allAgentNames) {
-    const baseAgent = base[agentName];
-    const overrideAgent = override[agentName];
-    result[agentName] = mergeAgentOverrideConfig(baseAgent, overrideAgent);
-  }
-
-  return result;
-}
-
 function mergeConfigs(
   base: OhMyOpenCodeConfig,
   override: OhMyOpenCodeConfig
@@ -133,7 +89,7 @@ function mergeConfigs(
   return {
     ...base,
     ...override,
-    agents: mergeAgentOverrides(base.agents, override.agents),
+    agents: deepMerge(base.agents, override.agents),
     disabled_agents: [
       ...new Set([
         ...(base.disabled_agents ?? []),
@@ -146,10 +102,7 @@ function mergeConfigs(
         ...(override.disabled_mcps ?? []),
       ]),
     ],
-    claude_code:
-      override.claude_code !== undefined || base.claude_code !== undefined
-        ? { ...(base.claude_code ?? {}), ...(override.claude_code ?? {}) }
-        : undefined,
+    claude_code: deepMerge(base.claude_code, override.claude_code),
   };
 }
 
