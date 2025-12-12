@@ -73,7 +73,7 @@ function detectErrorType(error: unknown): RecoveryErrorType {
     message.includes("thinking") &&
     (message.includes("first block") ||
       message.includes("must start with") ||
-      message.includes("preceeding") ||
+      message.includes("preceding") ||
       (message.includes("expected") && message.includes("found")))
   ) {
     return "thinking_block_order"
