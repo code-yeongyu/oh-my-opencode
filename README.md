@@ -2,9 +2,9 @@
 
 <div align="center">
 
-![Oh My OpenCode](./.github/assets/hero.jpg)
+[![Oh My OpenCode](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
-![Preview](./.github/assets/preview.png)
+[![Preview](./.github/assets/preview.png)](https://github.com/code-yeongyu/oh-my-opencode#oh-my-opencode)
 
 </div>
 
