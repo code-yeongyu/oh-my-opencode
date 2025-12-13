@@ -15,7 +15,8 @@ export function isSymbolicLink(filePath: string): boolean {
 
 export function resolveSymlink(filePath: string): string {
   try {
-    if (isSymbolicLink(filePath)) {
+    const stats = lstatSync(filePath, { throwIfNoEntry: false })
+    if (stats?.isSymbolicLink()) {
       return resolve(filePath, "..", readlinkSync(filePath))
     }
     return filePath
