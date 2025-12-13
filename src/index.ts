@@ -269,6 +269,22 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
         ...projectAgents,
         ...config.agent,
       };
+
+      const omoEnabled = !omoDisabled;
+      const omoIsDefault = !omoNotDefault;
+      const omoModelNotOverridden = !agentOverrides.omo?.model;
+      const buildModelNotSet = !config.agent?.build?.model;
+      const shouldEnhanceBuildAgent = omoEnabled && omoIsDefault && omoModelNotOverridden && buildModelNotSet;
+
+      if (shouldEnhanceBuildAgent) {
+        config.agent.build = {
+          ...config.agent.build,
+          model: "anthropic/claude-opus-4-5-high",
+          thinking: { type: "enabled", budgetTokens: 64000 },
+          maxTokens: 128000,
+        };
+      }
+
       config.tools = {
         ...config.tools,
       };
