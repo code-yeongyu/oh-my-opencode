@@ -22,8 +22,12 @@ function loadSkillsFromDir(skillsDir: string, scope: SkillScope): LoadedSkillAsC
     if (!entry.isDirectory() && !entry.isSymbolicLink()) continue
 
     let resolvedPath = skillPath
-    if (lstatSync(skillPath, { throwIfNoEntry: false })?.isSymbolicLink()) {
-      resolvedPath = resolve(skillPath, "..", readlinkSync(skillPath))
+    try {
+      if (lstatSync(skillPath, { throwIfNoEntry: false })?.isSymbolicLink()) {
+        resolvedPath = resolve(skillPath, "..", readlinkSync(skillPath))
+      }
+    } catch {
+      continue
     }
 
     const skillMdPath = join(resolvedPath, "SKILL.md")
