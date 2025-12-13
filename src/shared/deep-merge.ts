@@ -20,6 +20,8 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * deepMerge({ a: 1, b: { c: 2, d: 3 } }, { b: { c: 10 }, e: 5 })
  * // => { a: 1, b: { c: 10, d: 3 }, e: 5 }
  */
+export function deepMerge<T extends Record<string, unknown>>(base: T, override: Partial<T>, depth?: number): T;
+export function deepMerge<T extends Record<string, unknown>>(base: T | undefined, override: T | undefined, depth?: number): T | undefined;
 export function deepMerge<T extends Record<string, unknown>>(
   base: T | undefined,
   override: T | undefined,

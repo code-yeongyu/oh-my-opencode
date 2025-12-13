@@ -19,7 +19,7 @@ function mergeAgentConfig(
   base: AgentConfig,
   override: AgentOverrideConfig
 ): AgentConfig {
-  return deepMerge(base, override) as AgentConfig
+  return deepMerge(base, override as Partial<AgentConfig>)
 }
 
 export function createBuiltinAgents(
