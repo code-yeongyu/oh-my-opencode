@@ -28,7 +28,8 @@
           "explore",
           "frontend-ui-ux-engineer",
           "document-writer",
-          "multimodal-looker"
+          "multimodal-looker",
+          "omo"
         ]
       }
     },
@@ -65,7 +66,8 @@
           "explore",
           "frontend-ui-ux-engineer",
           "document-writer",
-          "multimodal-looker"
+          "multimodal-looker",
+          "omo"
         ]
       },
       "additionalProperties": {
@@ -244,6 +246,22 @@
         "hooks": {
           "type": "boolean",
           "description": "Execute hooks from ~/.claude/settings.json, ./.claude/settings.json, ./.claude/settings.local.json"
+        }
+      }
+    },
+    "omo_agent": {
+      "type": "object",
+      "description": "Configure the OmO (Oh My OpenCode) orchestration agent. OmO actively delegates to specialized agents for complex tasks.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the OmO agent. When true, OmO agent is available for use.",
+          "default": true
+        },
+        "default": {
+          "type": "boolean",
+          "description": "Set OmO as the default primary agent, replacing the build agent. When true, Tab key shows OmO agent first.",
+          "default": true
         }
       }
     }

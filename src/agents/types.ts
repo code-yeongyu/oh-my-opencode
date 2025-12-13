@@ -7,6 +7,7 @@ export type AgentName =
   | "frontend-ui-ux-engineer"
   | "document-writer"
   | "multimodal-looker"
+  | "omo"
 
 export type AgentOverrideConfig = Partial<AgentConfig>
 

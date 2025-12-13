@@ -229,6 +229,7 @@ The plugin works perfectly with defaults. Aside from the recommended `google_aut
 
 ### Agents: Your Teammates
 
+- **omo** (`anthropic/claude-sonnet-4-5`): The orchestration-focused primary agent. Actively delegates to specialized agents (explore, librarian, oracle, etc.) for complex tasks. Uses Sonnet 4.5 for its balanced speed and intelligence. **Enabled by default as your main agent.**
 - **oracle** (`openai/gpt-5.2`): Architecture, code review, strategy. Uses GPT-5.2 for its stellar logical reasoning and deep analysis. Inspired by AmpCode.
 - **librarian** (`anthropic/claude-sonnet-4-5`): Multi-repo analysis, doc lookup, implementation examples. Claude Sonnet 4 is fast, smart, great at tool calls, and excellent for documentation research. Inspired by AmpCode.
 - **explore** (`opencode/grok-code`): Fast codebase exploration and pattern matching. Claude Code uses Haiku; we use Grok—it's free, blazing fast, and plenty smart for file traversal. Inspired by Claude Code.
@@ -236,7 +237,7 @@ The plugin works perfectly with defaults. Aside from the recommended `google_aut
 - **document-writer** (`google/gemini-3-pro-preview`): Technical writing expert. Gemini is a wordsmith—writes prose that flows.
 - **multimodal-looker** (`google/gemini-2.5-flash`): Visual content specialist. Analyzes PDFs, images, diagrams to extract information.
 
-The main agent invokes these automatically, but you can call them explicitly:
+The OmO agent automatically delegates to these specialists, but you can also call them explicitly:
 
 ```
 Ask @oracle to review this design and propose an architecture
@@ -456,6 +457,35 @@ Enable built-in Antigravity OAuth for Google Gemini models:
 
 When enabled, `opencode auth login` shows "OAuth with Google (Antigravity)" for the Google provider.
 
+### OmO Agent
+
+The OmO (Oh My OpenCode) agent is an orchestration-focused primary agent that actively delegates to specialized agents. It's enabled by default and set as your main agent.
+
+Configure OmO agent behavior:
+
+```json
+{
+  "omo_agent": {
+    "enabled": true,
+    "default": true
+  }
+}
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `enabled` | Enable/disable the OmO agent entirely | `true` |
+| `default` | Set OmO as the primary agent (Tab key shows OmO first). When `false`, OmO becomes a subagent. | `true` |
+
+To use the default build agent instead of OmO:
+```json
+{
+  "omo_agent": {
+    "default": false
+  }
+}
+```
+
 ### Agents
 
 Override built-in agent settings:
@@ -484,7 +514,7 @@ Or disable via `disabled_agents` in `~/.config/opencode/oh-my-opencode.json` or 
 }
 ```
 
-Available agents: `oracle`, `librarian`, `explore`, `frontend-ui-ux-engineer`, `document-writer`
+Available agents: `omo`, `oracle`, `librarian`, `explore`, `frontend-ui-ux-engineer`, `document-writer`, `multimodal-looker`
 
 ### MCPs
 

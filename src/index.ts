@@ -240,9 +240,24 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     },
 
     config: async (config) => {
+      const omoAgentConfig = pluginConfig.omo_agent ?? { enabled: true, default: true };
+      const disabledAgents = [...(pluginConfig.disabled_agents ?? [])];
+      const agentOverrides = { ...pluginConfig.agents };
+
+      const omoDisabled = omoAgentConfig.enabled === false;
+      const omoNotDefault = omoAgentConfig.enabled !== false && omoAgentConfig.default === false;
+
+      if (omoDisabled && !disabledAgents.includes("omo")) {
+        disabledAgents.push("omo");
+      }
+
+      if (omoNotDefault) {
+        agentOverrides.omo = { ...agentOverrides.omo, mode: "subagent" };
+      }
+
       const builtinAgents = createBuiltinAgents(
-        pluginConfig.disabled_agents,
-        pluginConfig.agents,
+        disabledAgents,
+        agentOverrides,
       );
 
       const userAgents = (pluginConfig.claude_code?.agents ?? true) ? loadUserAgents() : {};
@@ -254,6 +269,22 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
         ...projectAgents,
         ...config.agent,
       };
+
+      const omoEnabled = !omoDisabled;
+      const omoIsDefault = !omoNotDefault;
+      const omoModelNotOverridden = !agentOverrides.omo?.model;
+      const buildModelNotSet = !config.agent?.build?.model;
+      const shouldEnhanceBuildAgent = omoEnabled && omoIsDefault && omoModelNotOverridden && buildModelNotSet;
+
+      if (shouldEnhanceBuildAgent) {
+        config.agent.build = {
+          ...config.agent.build,
+          model: "anthropic/claude-opus-4-5-high",
+          thinking: { type: "enabled", budgetTokens: 64000 },
+          maxTokens: 128000,
+        };
+      }
+
       config.tools = {
         ...config.tools,
       };
@@ -461,4 +492,5 @@ export type {
   AgentOverrides,
   McpName,
   HookName,
+  OmoAgentConfig,
 } from "./config";
