@@ -2,7 +2,7 @@ import type { PluginInput } from "@opencode-ai/plugin"
 import {
   HOOK_NAME,
   INTERACTIVE_FLAG_PATTERNS,
-  STDIN_REQUIRING_COMMANDS,
+  STDIN_REQUIRING_PATTERNS,
   TMUX_SUGGESTION,
 } from "./constants"
 import type { BlockResult } from "./types"
@@ -25,13 +25,13 @@ function checkInteractiveCommand(command: string): BlockResult {
     }
   }
 
-  for (const cmd of STDIN_REQUIRING_COMMANDS) {
-    if (normalizedCmd.includes(cmd)) {
+  for (const pattern of STDIN_REQUIRING_PATTERNS) {
+    if (pattern.test(normalizedCmd)) {
       return {
         blocked: true,
-        reason: `Command requires stdin interaction: ${cmd}`,
+        reason: `Command requires stdin interaction`,
         command: normalizedCmd,
-        matchedPattern: cmd,
+        matchedPattern: pattern.source,
       }
     }
   }

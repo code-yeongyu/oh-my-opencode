@@ -52,12 +52,12 @@ export const INTERACTIVE_FLAG_PATTERNS = [
   /\bselect\b.*\bin\b/,
 ]
 
-export const STDIN_REQUIRING_COMMANDS = [
-  "passwd",
-  "su",
-  "sudo -S",
-  "gpg --gen-key",
-  "ssh-keygen",
+export const STDIN_REQUIRING_PATTERNS = [
+  /\bpasswd\b/,
+  /\bsu\b(?!\s*[|&;]|\s+-c)/,
+  /\bsudo\s+-S\b/,
+  /\bgpg\s+--gen-key\b/,
+  /\bssh-keygen\b(?!\s+.*-[fNPqy])/,
 ]
 
 export const TMUX_SUGGESTION = `
