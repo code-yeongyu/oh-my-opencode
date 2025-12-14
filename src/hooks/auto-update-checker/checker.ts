@@ -8,6 +8,7 @@ import {
   NPM_FETCH_TIMEOUT,
   INSTALLED_PACKAGE_JSON,
   USER_OPENCODE_CONFIG,
+  USER_OPENCODE_CONFIG_JSONC,
 } from "./constants"
 import { log } from "../../shared/logger"
 
@@ -21,8 +22,9 @@ function stripJsonComments(json: string): string {
 
 export function getLocalDevPath(directory: string): string | null {
   const projectConfig = path.join(directory, ".opencode", "opencode.json")
+  const projectConfigJsonc = path.join(directory, ".opencode", "opencode.jsonc")
 
-  for (const configPath of [projectConfig, USER_OPENCODE_CONFIG]) {
+  for (const configPath of [projectConfig, projectConfigJsonc, USER_OPENCODE_CONFIG, USER_OPENCODE_CONFIG_JSONC]) {
     try {
       if (!fs.existsSync(configPath)) continue
       const content = fs.readFileSync(configPath, "utf-8")
@@ -31,7 +33,11 @@ export function getLocalDevPath(directory: string): string | null {
 
       for (const entry of plugins) {
         if (entry.startsWith("file://") && entry.includes(PACKAGE_NAME)) {
-          return entry.replace("file://", "")
+          try {
+            return fileURLToPath(entry)
+          } catch {
+            return entry.replace("file://", "")
+          }
         }
       }
     } catch {
@@ -66,15 +72,23 @@ function findPackageJsonUp(startPath: string): string | null {
 
 export function getLocalDevVersion(directory: string): string | null {
   const localPath = getLocalDevPath(directory)
-  if (!localPath) return null
+  if (!localPath) {
+    log("[auto-update-checker] getLocalDevVersion: no local path found")
+    return null
+  }
 
   try {
     const pkgPath = findPackageJsonUp(localPath)
-    if (!pkgPath) return null
+    if (!pkgPath) {
+      log(`[auto-update-checker] getLocalDevVersion: no package.json found from ${localPath}`)
+      return null
+    }
     const content = fs.readFileSync(pkgPath, "utf-8")
     const pkg = JSON.parse(content) as PackageJson
+    log(`[auto-update-checker] getLocalDevVersion: found version ${pkg.version} at ${pkgPath}`)
     return pkg.version ?? null
-  } catch {
+  } catch (err) {
+    log("[auto-update-checker] getLocalDevVersion: error reading package.json", err)
     return null
   }
 }
@@ -87,8 +101,9 @@ export interface PluginEntryInfo {
 
 export function findPluginEntry(directory: string): PluginEntryInfo | null {
   const projectConfig = path.join(directory, ".opencode", "opencode.json")
+  const projectConfigJsonc = path.join(directory, ".opencode", "opencode.jsonc")
 
-  for (const configPath of [projectConfig, USER_OPENCODE_CONFIG]) {
+  for (const configPath of [projectConfig, projectConfigJsonc, USER_OPENCODE_CONFIG, USER_OPENCODE_CONFIG_JSONC]) {
     try {
       if (!fs.existsSync(configPath)) continue
       const content = fs.readFileSync(configPath, "utf-8")
@@ -118,7 +133,10 @@ export function getCachedVersion(): string | null {
     if (fs.existsSync(INSTALLED_PACKAGE_JSON)) {
       const content = fs.readFileSync(INSTALLED_PACKAGE_JSON, "utf-8")
       const pkg = JSON.parse(content) as PackageJson
-      if (pkg.version) return pkg.version
+      if (pkg.version) {
+        log(`[auto-update-checker] getCachedVersion: found ${pkg.version} at ${INSTALLED_PACKAGE_JSON}`)
+        return pkg.version
+      }
     }
   } catch {}
 
@@ -128,10 +146,14 @@ export function getCachedVersion(): string | null {
     if (pkgPath) {
       const content = fs.readFileSync(pkgPath, "utf-8")
       const pkg = JSON.parse(content) as PackageJson
-      if (pkg.version) return pkg.version
+      if (pkg.version) {
+        log(`[auto-update-checker] getCachedVersion: found ${pkg.version} at ${pkgPath}`)
+        return pkg.version
+      }
     }
+    log(`[auto-update-checker] getCachedVersion: no package.json found from ${currentDir}`)
   } catch (err) {
-    log("[auto-update-checker] Failed to resolve version from current directory:", err)
+    log("[auto-update-checker] getCachedVersion: error resolving version from current directory:", err)
   }
 
   return null
