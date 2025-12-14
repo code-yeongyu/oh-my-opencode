@@ -17,8 +17,7 @@ export function isLocalDevMode(directory: string): boolean {
 
 function stripJsonComments(json: string): string {
   return json
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^\s*\/\/.*$/gm, "")
+    .replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) => (g ? "" : m))
     .replace(/,(\s*[}\]])/g, "$1")
 }
 
