@@ -10,21 +10,29 @@ import {
   USER_OPENCODE_CONFIG,
   USER_OPENCODE_CONFIG_JSONC,
 } from "./constants"
-import { log } from "../../shared/logger"
 
 export function isLocalDevMode(directory: string): boolean {
   return getLocalDevPath(directory) !== null
 }
 
 function stripJsonComments(json: string): string {
-  return json.replace(/^\s*\/\/.*$/gm, "").replace(/,(\s*[}\]])/g, "$1")
+  return json
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "")
+    .replace(/,(\s*[}\]])/g, "$1")
+}
+
+function getConfigPaths(directory: string): string[] {
+  return [
+    path.join(directory, ".opencode", "opencode.json"),
+    path.join(directory, ".opencode", "opencode.jsonc"),
+    USER_OPENCODE_CONFIG,
+    USER_OPENCODE_CONFIG_JSONC,
+  ]
 }
 
 export function getLocalDevPath(directory: string): string | null {
-  const projectConfig = path.join(directory, ".opencode", "opencode.json")
-  const projectConfigJsonc = path.join(directory, ".opencode", "opencode.jsonc")
-
-  for (const configPath of [projectConfig, projectConfigJsonc, USER_OPENCODE_CONFIG, USER_OPENCODE_CONFIG_JSONC]) {
+  for (const configPath of getConfigPaths(directory)) {
     try {
       if (!fs.existsSync(configPath)) continue
       const content = fs.readFileSync(configPath, "utf-8")
@@ -72,23 +80,15 @@ function findPackageJsonUp(startPath: string): string | null {
 
 export function getLocalDevVersion(directory: string): string | null {
   const localPath = getLocalDevPath(directory)
-  if (!localPath) {
-    log("[auto-update-checker] getLocalDevVersion: no local path found")
-    return null
-  }
+  if (!localPath) return null
 
   try {
     const pkgPath = findPackageJsonUp(localPath)
-    if (!pkgPath) {
-      log(`[auto-update-checker] getLocalDevVersion: no package.json found from ${localPath}`)
-      return null
-    }
+    if (!pkgPath) return null
     const content = fs.readFileSync(pkgPath, "utf-8")
     const pkg = JSON.parse(content) as PackageJson
-    log(`[auto-update-checker] getLocalDevVersion: found version ${pkg.version} at ${pkgPath}`)
     return pkg.version ?? null
-  } catch (err) {
-    log("[auto-update-checker] getLocalDevVersion: error reading package.json", err)
+  } catch {
     return null
   }
 }
@@ -100,10 +100,7 @@ export interface PluginEntryInfo {
 }
 
 export function findPluginEntry(directory: string): PluginEntryInfo | null {
-  const projectConfig = path.join(directory, ".opencode", "opencode.json")
-  const projectConfigJsonc = path.join(directory, ".opencode", "opencode.jsonc")
-
-  for (const configPath of [projectConfig, projectConfigJsonc, USER_OPENCODE_CONFIG, USER_OPENCODE_CONFIG_JSONC]) {
+  for (const configPath of getConfigPaths(directory)) {
     try {
       if (!fs.existsSync(configPath)) continue
       const content = fs.readFileSync(configPath, "utf-8")
@@ -119,6 +116,9 @@ export function findPluginEntry(directory: string): PluginEntryInfo | null {
           const isPinned = pinnedVersion !== "latest"
           return { entry, isPinned, pinnedVersion: isPinned ? pinnedVersion : null }
         }
+        if (entry.startsWith("file://") && entry.includes(PACKAGE_NAME)) {
+          return { entry, isPinned: false, pinnedVersion: null }
+        }
       }
     } catch {
       continue
@@ -133,10 +133,7 @@ export function getCachedVersion(): string | null {
     if (fs.existsSync(INSTALLED_PACKAGE_JSON)) {
       const content = fs.readFileSync(INSTALLED_PACKAGE_JSON, "utf-8")
       const pkg = JSON.parse(content) as PackageJson
-      if (pkg.version) {
-        log(`[auto-update-checker] getCachedVersion: found ${pkg.version} at ${INSTALLED_PACKAGE_JSON}`)
-        return pkg.version
-      }
+      if (pkg.version) return pkg.version
     }
   } catch {}
 
@@ -146,15 +143,9 @@ export function getCachedVersion(): string | null {
     if (pkgPath) {
       const content = fs.readFileSync(pkgPath, "utf-8")
       const pkg = JSON.parse(content) as PackageJson
-      if (pkg.version) {
-        log(`[auto-update-checker] getCachedVersion: found ${pkg.version} at ${pkgPath}`)
-        return pkg.version
-      }
+      if (pkg.version) return pkg.version
     }
-    log(`[auto-update-checker] getCachedVersion: no package.json found from ${currentDir}`)
-  } catch (err) {
-    log("[auto-update-checker] getCachedVersion: error resolving version from current directory:", err)
-  }
+  } catch {}
 
   return null
 }
@@ -182,36 +173,28 @@ export async function getLatestVersion(): Promise<string | null> {
 
 export async function checkForUpdate(directory: string): Promise<UpdateCheckResult> {
   if (isLocalDevMode(directory)) {
-    log("[auto-update-checker] Local dev mode detected, skipping update check")
     return { needsUpdate: false, currentVersion: null, latestVersion: null, isLocalDev: true, isPinned: false }
   }
 
   const pluginInfo = findPluginEntry(directory)
   if (!pluginInfo) {
-    log("[auto-update-checker] Plugin not found in config")
     return { needsUpdate: false, currentVersion: null, latestVersion: null, isLocalDev: false, isPinned: false }
   }
 
-  // Respect version pinning
   if (pluginInfo.isPinned) {
-    log(`[auto-update-checker] Version pinned to ${pluginInfo.pinnedVersion}, skipping update check`)
     return { needsUpdate: false, currentVersion: pluginInfo.pinnedVersion, latestVersion: null, isLocalDev: false, isPinned: true }
   }
 
   const currentVersion = getCachedVersion()
   if (!currentVersion) {
-    log("[auto-update-checker] No cached version found")
     return { needsUpdate: false, currentVersion: null, latestVersion: null, isLocalDev: false, isPinned: false }
   }
 
   const latestVersion = await getLatestVersion()
   if (!latestVersion) {
-    log("[auto-update-checker] Failed to fetch latest version")
     return { needsUpdate: false, currentVersion, latestVersion: null, isLocalDev: false, isPinned: false }
   }
 
   const needsUpdate = currentVersion !== latestVersion
-  log(`[auto-update-checker] Current: ${currentVersion}, Latest: ${latestVersion}, NeedsUpdate: ${needsUpdate}`)
-
   return { needsUpdate, currentVersion, latestVersion, isLocalDev: false, isPinned: false }
 }
