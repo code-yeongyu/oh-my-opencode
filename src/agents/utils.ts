@@ -1,5 +1,6 @@
 import type { AgentConfig } from "@opencode-ai/sdk"
 import type { BuiltinAgentName, AgentOverrideConfig, AgentOverrides } from "./types"
+import { smartAgent } from "./smart"
 import { oracleAgent } from "./oracle"
 import { librarianAgent } from "./librarian"
 import { exploreAgent } from "./explore"
@@ -9,6 +10,7 @@ import { multimodalLookerAgent } from "./multimodal-looker"
 import { deepMerge } from "../shared"
 
 const allBuiltinAgents: Record<BuiltinAgentName, AgentConfig> = {
+  smart: smartAgent,
   oracle: oracleAgent,
   librarian: librarianAgent,
   explore: exploreAgent,
