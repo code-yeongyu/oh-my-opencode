@@ -115,9 +115,6 @@ export function findPluginEntry(directory: string): PluginEntryInfo | null {
           const isPinned = pinnedVersion !== "latest"
           return { entry, isPinned, pinnedVersion: isPinned ? pinnedVersion : null }
         }
-        if (entry.startsWith("file://") && entry.includes(PACKAGE_NAME)) {
-          return { entry, isPinned: false, pinnedVersion: null }
-        }
       }
     } catch {
       continue
