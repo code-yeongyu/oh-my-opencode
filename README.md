@@ -150,14 +150,21 @@ If OpenCode isn't installed, check the [OpenCode Installation Guide](https://ope
 ```bash
 mkdir -p ~/.config/opencode
 
-if [ -f ~/.config/opencode/opencode.json ]; then
+CONFIG_FILE=""
+if [ -f ~/.config/opencode/opencode.jsonc ]; then
+    CONFIG_FILE=~/.config/opencode/opencode.jsonc
+elif [ -f ~/.config/opencode/opencode.json ]; then
+    CONFIG_FILE=~/.config/opencode/opencode.json
+fi
+
+if [ -n "$CONFIG_FILE" ]; then
     # Existing config: add plugin using jq or python
     if command -v jq &> /dev/null; then
         jq '.plugin = ((.plugin // []) + ["oh-my-opencode"] | unique)' \
-            ~/.config/opencode/opencode.json > /tmp/oc.json && \
-            mv /tmp/oc.json ~/.config/opencode/opencode.json
+            "$CONFIG_FILE" > /tmp/oc.json && \
+            mv /tmp/oc.json "$CONFIG_FILE"
     else
-        echo "Please add \"oh-my-opencode\" to the plugin array in ~/.config/opencode/opencode.json"
+        echo "Please add \"oh-my-opencode\" to the plugin array in $CONFIG_FILE"
     fi
 else
     # Create new config
@@ -169,7 +176,7 @@ fi
 
 ```bash
 opencode --version  # Should be 1.0.132 or higher
-cat ~/.config/opencode/opencode.json  # Should contain "oh-my-opencode" in plugin array
+cat ~/.config/opencode/opencode.json 2>/dev/null || cat ~/.config/opencode/opencode.jsonc  # Should contain "oh-my-opencode" in plugin array
 ```
 
 ### Step 4: Configure Authentication

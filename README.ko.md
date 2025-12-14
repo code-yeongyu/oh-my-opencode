@@ -149,14 +149,21 @@ OpenCode가 설치되어 있지 않다면, [OpenCode 설치 가이드](https://o
 ```bash
 mkdir -p ~/.config/opencode
 
-if [ -f ~/.config/opencode/opencode.json ]; then
+CONFIG_FILE=""
+if [ -f ~/.config/opencode/opencode.jsonc ]; then
+    CONFIG_FILE=~/.config/opencode/opencode.jsonc
+elif [ -f ~/.config/opencode/opencode.json ]; then
+    CONFIG_FILE=~/.config/opencode/opencode.json
+fi
+
+if [ -n "$CONFIG_FILE" ]; then
     # 기존 설정 파일이 있는 경우: jq 또는 python으로 plugin 추가
     if command -v jq &> /dev/null; then
         jq '.plugin = ((.plugin // []) + ["oh-my-opencode"] | unique)' \
-            ~/.config/opencode/opencode.json > /tmp/oc.json && \
-            mv /tmp/oc.json ~/.config/opencode/opencode.json
+            "$CONFIG_FILE" > /tmp/oc.json && \
+            mv /tmp/oc.json "$CONFIG_FILE"
     else
-        echo "~/.config/opencode/opencode.json의 plugin 배열에 \"oh-my-opencode\"를 추가하세요"
+        echo "$CONFIG_FILE 의 plugin 배열에 \"oh-my-opencode\"를 추가하세요"
     fi
 else
     # 새 설정 파일 생성
@@ -168,7 +175,7 @@ fi
 
 ```bash
 opencode --version  # 1.0.132 이상이어야 함
-cat ~/.config/opencode/opencode.json  # plugin 배열에 "oh-my-opencode"가 있어야 함
+cat ~/.config/opencode/opencode.json 2>/dev/null || cat ~/.config/opencode/opencode.jsonc  # plugin 배열에 "oh-my-opencode"가 있어야 함
 ```
 
 ### 4단계: 인증정보 설정
