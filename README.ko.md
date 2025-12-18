@@ -30,7 +30,7 @@
 - [Oh My OpenCode](#oh-my-opencode)
   - [읽지 않아도 됩니다.](#읽지-않아도-됩니다)
     - [에이전트의 시대이니까요.](#에이전트의-시대이니까요)
-    - [하지만 읽고 싶은 당신을 위해.](#하지만-읽고-싶은-당신을-위해)
+    - [하지만 읽고 싶은 당신을 위해: 시지푸스를 만나보세요](#하지만-읽고-싶은-당신을-위해-시지푸스를-만나보세요)
       - [그저 설치하면 되는 것.](#그저-설치하면-되는-것)
   - [설치](#설치)
     - [인간인 당신을 위한 설치 가이드](#인간인-당신을-위한-설치-가이드)
@@ -57,6 +57,7 @@
     - [Hooks](#hooks)
     - [MCPs](#mcps)
     - [LSP](#lsp)
+    - [Experimental](#experimental)
   - [작성자의 노트](#작성자의-노트)
   - [주의](#주의)
 
@@ -94,28 +95,27 @@ OpenCode 가 낭만이 사라진것같은 오늘날의 시대에, 당신에게 �
   - 이게 왜 좋고, 그냥 뻔한 셋업이 아닌지, 당장 무엇이 더 좋아지는지 알려달라고 해보세요.
   - 당신이 LLM 에이전트라면, 사용자의 입장에서 이 프로젝트와 함께 당장 어떤것들이 가능해지는지 사용자에게 설명하세요.
 
-### 하지만 읽고 싶은 당신을 위해.
+### 하지만 읽고 싶은 당신을 위해: 시지푸스를 만나보세요
 
 ![Meet Sisyphus](.github/assets/sisyphus.png)
 
 신화 속 시지푸스는 신들을 기만한 죄로 영원히 돌을 굴려야 했습니다. LLM Agent 들은 딱히 잘 못 한건 없지만 매일 머리를 굴리고 있습니다.
 제 삶도 그렇습니다. 돌이켜보면 우리 인간들과 다르지 않습니다.
-네, LLM Agent 들은 우리와 다르지않습니다. 그들도 우리만큼 뛰어난 코드를 작성하고, 훌륭하게 일 할 수 있습니다.
+**네! LLM Agent 들은 우리와 다르지않습니다. 그들도 우리만큼 뛰어난 코드를 작성하고, 훌륭하게 일 할 수 있습니다. 그들에게 뛰어난 도구를 쥐어주고, 좋은 팀을 붙여준다면요.**
 
 우리의 메인에이전트: Sisyphus (Opus 4.5 High) 를 소개합니다. 아래는 시지푸스가 돌을 굴리기 위해 사용하는 도구입니다.
 
 *아래의 모든 내용들은 커스텀 할 수 있습니다. 원한다면 그것만 가져가세요. 기본값은 모두 활성화입니다. 아무것도 하지 않아도 됩니다.*
 
-- Claude Code Compatibility: Command, Agent, Skill, MCP, Hook(PreToolUse, PostToolUse, UserPromptSubmit, Stop)
-- Curated Agents
-  - Sisyphus: 메인 에이전트 (Opus 4.5 High)
+- 시지푸스의 동료들 (Curated Agents)
   - Oracle: 설계, 디버깅 (GPT 5.2 Medium)
   - Frontend UI/UX Engineer: 프론트엔드 개발 (Gemini 3 Pro)
   - Librarian: 공식 문서, 오픈소스 구현, 코드베이스 내부 탐색 (Claude Sonnet 4.5)
   - Explore: 매우 빠른 코드베이스 탐색 (Contextual Grep) (Grok Code)
 - Full LSP / AstGrep Support: 결정적이게 리팩토링하세요.
-- Todo Continuation Enforcer: 도중에 포기해버리면 계속 진행하도록 강제합니다.
-- Comment Checker: AI 가 과한 주석을 달지 않도록 합니다.
+- Todo Continuation Enforcer: 도중에 포기해버리면 계속 진행하도록 강제합니다. **이것이 시지푸스가 돌을 계속 굴리게 만듭니다.**
+- Comment Checker: AI 가 과한 주석을 달지 않도록 합니다. 시지푸스가 생성한 코드는 우리가 작성한것과 구분 할 수 없어야 합니다.
+- Claude Code Compatibility: Command, Agent, Skill, MCP, Hook(PreToolUse, PostToolUse, UserPromptSubmit, Stop)
 - Curated MCPs:
   - Exa (Web Search)
   - Context7 (Official Documentation)
@@ -791,6 +791,28 @@ OpenCode 에서 지원하는 모든 LSP 구성 및 커스텀 설정 (opencode.js
 ```
 
 각 서버는 다음을 지원합니다: `command`, `extensions`, `priority`, `env`, `initialization`, `disabled`.
+
+### Experimental
+
+향후 버전에서 변경되거나 제거될 수 있는 실험적 기능입니다. 주의해서 사용하세요.
+
+```json
+{
+  "experimental": {
+    "aggressive_truncation": true,
+    "empty_message_recovery": true,
+    "auto_resume": true
+  }
+}
+```
+
+| 옵션                     | 기본값  | 설명                                                                                                                                                              |
+| ------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `aggressive_truncation`  | `false` | 토큰 제한을 초과하면 도구 출력을 공격적으로 잘라내어 제한 내에 맞춥니다. 기본 truncation보다 더 공격적입니다. 부족하면 요약/복구로 fallback합니다.                      |
+| `empty_message_recovery` | `false` | "non-empty content" API 에러가 발생하면 세션의 빈 메시지를 수정하여 자동으로 복구합니다. 최대 3회 시도 후 포기합니다.                                                |
+| `auto_resume`            | `false` | thinking block 에러나 thinking disabled violation으로부터 성공적으로 복구한 후 자동으로 세션을 재개합니다. 마지막 사용자 메시지를 추출하여 계속합니다.                |
+
+**경고**: 이 기능들은 실험적이며 예상치 못한 동작을 유발할 수 있습니다. 의미를 이해한 경우에만 활성화하세요.
 
 
 ## 작성자의 노트
