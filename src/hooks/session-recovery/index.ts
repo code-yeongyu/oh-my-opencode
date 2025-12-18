@@ -1,5 +1,6 @@
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { createOpencodeClient } from "@opencode-ai/sdk"
+import type { ExperimentalConfig } from "../../config"
 import {
   findEmptyMessages,
   findEmptyMessageByIndex,
@@ -15,6 +16,10 @@ import {
   stripThinkingParts,
 } from "./storage"
 import type { MessageData, ResumeConfig } from "./types"
+
+export interface SessionRecoveryOptions {
+  experimental?: ExperimentalConfig
+}
 
 type Client = ReturnType<typeof createOpencodeClient>
 
@@ -311,8 +316,9 @@ export interface SessionRecoveryHook {
   setOnRecoveryCompleteCallback: (callback: (sessionID: string) => void) => void
 }
 
-export function createSessionRecoveryHook(ctx: PluginInput): SessionRecoveryHook {
+export function createSessionRecoveryHook(ctx: PluginInput, options?: SessionRecoveryOptions): SessionRecoveryHook {
   const processingErrors = new Set<string>()
+  const experimental = options?.experimental
   let onAbortCallback: ((sessionID: string) => void) | null = null
   let onRecoveryCompleteCallback: ((sessionID: string) => void) | null = null
 
@@ -387,14 +393,14 @@ export function createSessionRecoveryHook(ctx: PluginInput): SessionRecoveryHook
         success = await recoverToolResultMissing(ctx.client, sessionID, failedMsg)
       } else if (errorType === "thinking_block_order") {
         success = await recoverThinkingBlockOrder(ctx.client, sessionID, failedMsg, ctx.directory, info.error)
-        if (success) {
+        if (success && experimental?.auto_resume) {
           const lastUser = findLastUserMessage(msgs ?? [])
           const resumeConfig = extractResumeConfig(lastUser, sessionID)
           await resumeSession(ctx.client, resumeConfig)
         }
       } else if (errorType === "thinking_disabled_violation") {
         success = await recoverThinkingDisabledViolation(ctx.client, sessionID, failedMsg)
-        if (success) {
+        if (success && experimental?.auto_resume) {
           const lastUser = findLastUserMessage(msgs ?? [])
           const resumeConfig = extractResumeConfig(lastUser, sessionID)
           await resumeSession(ctx.client, resumeConfig)

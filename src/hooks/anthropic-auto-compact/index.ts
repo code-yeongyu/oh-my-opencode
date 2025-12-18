@@ -1,8 +1,13 @@
 import type { PluginInput } from "@opencode-ai/plugin"
 import type { AutoCompactState, ParsedTokenLimitError } from "./types"
+import type { ExperimentalConfig } from "../../config"
 import { parseAnthropicTokenLimitError } from "./parser"
 import { executeCompact, getLastAssistant } from "./executor"
 import { log } from "../../shared/logger"
+
+export interface AnthropicAutoCompactOptions {
+  experimental?: ExperimentalConfig
+}
 
 function createAutoCompactState(): AutoCompactState {
   return {
@@ -16,8 +21,9 @@ function createAutoCompactState(): AutoCompactState {
   }
 }
 
-export function createAnthropicAutoCompactHook(ctx: PluginInput) {
+export function createAnthropicAutoCompactHook(ctx: PluginInput, options?: AnthropicAutoCompactOptions) {
   const autoCompactState = createAutoCompactState()
+  const experimental = options?.experimental
 
   const eventHandler = async ({ event }: { event: { type: string; properties?: unknown } }) => {
     const props = event.properties as Record<string, unknown> | undefined
@@ -72,7 +78,8 @@ export function createAnthropicAutoCompactHook(ctx: PluginInput) {
             { providerID, modelID },
             autoCompactState,
             ctx.client,
-            ctx.directory
+            ctx.directory,
+            experimental
           )
         }, 300)
       }
@@ -130,7 +137,8 @@ export function createAnthropicAutoCompactHook(ctx: PluginInput) {
         { providerID, modelID },
         autoCompactState,
         ctx.client,
-        ctx.directory
+        ctx.directory,
+        experimental
       )
     }
   }

@@ -1,4 +1,5 @@
 import type { AutoCompactState, FallbackState, RetryState, TruncateState } from "./types"
+import type { ExperimentalConfig } from "../../config"
 import { FALLBACK_CONFIG, RETRY_CONFIG, TRUNCATE_CONFIG } from "./types"
 import { findLargestToolResult, truncateToolResult, truncateUntilTargetTokens } from "./storage"
 import { findEmptyMessages, injectTextPart } from "../session-recovery/storage"
@@ -215,7 +216,8 @@ export async function executeCompact(
   autoCompactState: AutoCompactState,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any,
-  directory: string
+  directory: string,
+  experimental?: ExperimentalConfig
 ): Promise<void> {
   if (autoCompactState.compactionInProgress.has(sessionID)) {
     return
@@ -226,12 +228,13 @@ export async function executeCompact(
   const truncateState = getOrCreateTruncateState(autoCompactState, sessionID)
 
   if (
+    experimental?.aggressive_truncation &&
     errorData?.currentTokens &&
     errorData?.maxTokens &&
     errorData.currentTokens > errorData.maxTokens &&
     truncateState.truncateAttempt < TRUNCATE_CONFIG.maxTruncateAttempts
   ) {
-    log("[auto-compact] aggressive truncation triggered", {
+    log("[auto-compact] aggressive truncation triggered (experimental)", {
       currentTokens: errorData.currentTokens,
       maxTokens: errorData.maxTokens,
       targetRatio: TRUNCATE_CONFIG.targetTokenRatio,
@@ -358,14 +361,14 @@ export async function executeCompact(
 
   const retryState = getOrCreateRetryState(autoCompactState, sessionID)
 
-  if (errorData?.errorType?.includes("non-empty content")) {
+  if (experimental?.empty_message_recovery && errorData?.errorType?.includes("non-empty content")) {
     const attempt = getOrCreateEmptyContentAttempt(autoCompactState, sessionID)
     if (attempt < 3) {
       const fixed = await fixEmptyMessages(sessionID, autoCompactState, client as Client)
       if (fixed) {
         autoCompactState.compactionInProgress.delete(sessionID)
         setTimeout(() => {
-          executeCompact(sessionID, msg, autoCompactState, client, directory)
+          executeCompact(sessionID, msg, autoCompactState, client, directory, experimental)
         }, 500)
         return
       }
@@ -436,7 +439,7 @@ export async function executeCompact(
         const cappedDelay = Math.min(delay, RETRY_CONFIG.maxDelayMs)
 
         setTimeout(() => {
-          executeCompact(sessionID, msg, autoCompactState, client, directory)
+          executeCompact(sessionID, msg, autoCompactState, client, directory, experimental)
         }, cappedDelay)
         return
       }
@@ -495,7 +498,7 @@ export async function executeCompact(
         autoCompactState.compactionInProgress.delete(sessionID)
 
         setTimeout(() => {
-          executeCompact(sessionID, msg, autoCompactState, client, directory)
+          executeCompact(sessionID, msg, autoCompactState, client, directory, experimental)
         }, 1000)
         return
       } catch {}
