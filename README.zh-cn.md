@@ -58,7 +58,7 @@
     - [Google Auth](#google-auth)
     - [Agents](#agents)
       - [权限选项](#权限选项)
-    - [OmO Agent](#omo-agent)
+    - [Sisyphus Agent](#sisyphus-agent)
     - [Hooks](#hooks)
     - [MCPs](#mcps)
     - [LSP](#lsp)
@@ -99,7 +99,7 @@ oMoMoMoMoMo···
 
 ### 如果你真的想读读看
 
-幸会。我是 OmO（读作 Oh-Mo）。
+幸会。我是 Sisyphus（西西弗斯）。
 以下所有东西都能改。喜欢什么拿什么。默认全开，开箱即用。
 
 - Claude Code 兼容：Command、Agent、Skill、MCP、Hook（PreToolUse、PostToolUse、UserPromptSubmit、Stop）
@@ -107,7 +107,7 @@ oMoMoMoMoMo···
 - Todo 续跑强制：Agent 想半途而废？没门，强制干完。
 - 注释检查器：禁止 AI 写废话注释。
 - 精选 Agent
-  - OmO：超强主脑（Opus 4.5 High）
+  - Sisyphus：超强主脑（Opus 4.5 High）
   - Oracle：架构师、调试大神（GPT 5.2 Medium）
   - Frontend UI/UX Engineer：前端与设计专家（Gemini 3 Pro）
   - Librarian：翻阅文档、查开源实现、代码库探险（Claude Sonnet 4.5）
@@ -163,7 +163,7 @@ OpenCode 支持各种模型，我们这个插件也建议用各种前沿 LLM。�
      ```json
      {
        "agents": {
-         "OmO": { "model": "opencode/big-pickle" },
+         "Sisyphus": { "model": "opencode/big-pickle" },
          "librarian": { "model": "opencode/big-pickle" }
        }
      }
@@ -387,7 +387,7 @@ gh repo star code-yeongyu/oh-my-opencode
 
 ### Agents：你的神队友
 
-- **OmO** (`anthropic/claude-opus-4-5`)：**默认 Agent。** OpenCode 专属的强力 AI 编排器。指挥专业子 Agent 搞定复杂任务。主打后台任务委派和 Todo 驱动。用 Claude Opus 4.5 加上扩展思考（32k token 预算），智商拉满。
+- **Sisyphus** (`anthropic/claude-opus-4-5`)：**默认 Agent。** OpenCode 专属的强力 AI 编排器。指挥专业子 Agent 搞定复杂任务。主打后台任务委派和 Todo 驱动。用 Claude Opus 4.5 加上扩展思考（32k token 预算），智商拉满。
 - **oracle** (`openai/gpt-5.2`)：架构师、代码审查员、战略家。GPT-5.2 的逻辑推理和深度分析能力不是盖的。致敬 AmpCode。
 - **librarian** (`anthropic/claude-sonnet-4-5`)：多仓库分析、查文档、找示例。Claude Sonnet 4.5 深入理解代码库，GitHub 调研，给出的答案都有据可查。致敬 AmpCode。
 - **explore** (`opencode/grok-code`)：极速代码库扫描、模式匹配。Claude Code 用 Haiku，我们用 Grok——免费、飞快、扫文件够用了。致敬 Claude Code。
@@ -661,7 +661,7 @@ Agent 爽了，你自然也爽。但我还想直接让你爽。
 
 每个 Agent 能改这些：`model`、`temperature`、`top_p`、`prompt`、`tools`、`disable`、`description`、`mode`、`color`、`permission`。
 
-`OmO`（主编排器）和 `build`（默认 Agent）也能改。
+`Sisyphus`（主编排器）和 `build`（默认 Agent）也能改。
 
 #### 权限选项
 
@@ -699,16 +699,16 @@ Agent 爽了，你自然也爽。但我还想直接让你爽。
 
 能禁的 Agent：`oracle`、`librarian`、`explore`、`frontend-ui-ux-engineer`、`document-writer`、`multimodal-looker`
 
-### OmO Agent
+### Sisyphus Agent
 
-默认开启。OmO 会加两个主 Agent，把原来的降级成小弟：
+默认开启。Sisyphus 会加两个主 Agent，把原来的降级成小弟：
 
-- **OmO**：主编排 Agent（Claude Opus 4.5）
-- **OmO-Plan**：运行时继承 OpenCode plan Agent 所有设置（描述里加了"OhMyOpenCode version"）
+- **Sisyphus**：主编排 Agent（Claude Opus 4.5）
+- **Planner-Sisyphus**：运行时继承 OpenCode plan Agent 所有设置（描述里加了"OhMyOpenCode version"）
 - **build**：降级为子 Agent
 - **plan**：降级为子 Agent
 
-想禁用 OmO 恢复原来的？
+想禁用 Sisyphus 恢复原来的？
 
 ```json
 {
@@ -718,16 +718,16 @@ Agent 爽了，你自然也爽。但我还想直接让你爽。
 }
 ```
 
-OmO 和 OmO-Plan 也能自定义：
+Sisyphus 和 Planner-Sisyphus 也能自定义：
 
 ```json
 {
   "agents": {
-    "OmO": {
+    "Sisyphus": {
       "model": "anthropic/claude-sonnet-4",
       "temperature": 0.3
     },
-    "OmO-Plan": {
+    "Planner-Sisyphus": {
       "model": "openai/gpt-5.2"
     }
   }
@@ -736,7 +736,7 @@ OmO 和 OmO-Plan 也能自定义：
 
 | 选项       | 默认值  | 说明                                                                                                                                       |
 | ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `disabled` | `false` | 设为 `true` 就禁用 OmO，恢复原来的 build/plan。设为 `false`（默认）就是 OmO 和 OmO-Plan 掌权。 |
+| `disabled` | `false` | 设为 `true` 就禁用 Sisyphus，恢复原来的 build/plan。设为 `false`（默认）就是 Sisyphus 和 Planner-Sisyphus 掌权。 |
 
 ### Hooks
 

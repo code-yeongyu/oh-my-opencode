@@ -77,7 +77,7 @@ No stupid token consumption massive subagents here. No bloat tools here.
     - [Google Auth](#google-auth)
     - [Agents](#agents)
       - [Permission Options](#permission-options)
-    - [OmO Agent](#omo-agent)
+    - [Sisyphus Agent](#sisyphus-agent)
     - [Hooks](#hooks)
     - [MCPs](#mcps)
     - [LSP](#lsp)
@@ -118,7 +118,7 @@ Hand this doc to an agent and let them set it up.
 
 ### For Those Who Want to Read
 
-Welcome. Introducing OmO (Oh-Mo).
+Welcome. Introducing Sisyphus.
 Everything below is customizable. Take what you want.
 All features are enabled by default. You don't have to do anything. Battery Included, works out of the box.
 
@@ -127,7 +127,7 @@ All features are enabled by default. You don't have to do anything. Battery Incl
 - Full LSP / AstGrep Support: Explore precisely, Refactor with confidence.
 - Todo Continuation Enforcer: Forces the agent to continue if it quits halfway.
 - Curated Agents
-  - OmO: Super smart main agent (Opus 4.5 High)
+  - Sisyphus: Super smart main agent (Opus 4.5 High)
   - Oracle: Design, debugging (GPT 5.2 Medium)
   - Frontend UI/UX Engineer: Frontend development (Gemini 3 Pro)
   - Librarian: Official docs, open source implementations, codebase exploration (Claude Sonnet 4.5)
@@ -183,7 +183,7 @@ Since OpenCode Supports various models, and our plugin suggests various frontier
      ```json
      {
        "agents": {
-         "OmO": { "model": "opencode/big-pickle" },
+         "Sisyphus": { "model": "opencode/big-pickle" },
          "librarian": { "model": "opencode/big-pickle" }
        }
      }
@@ -441,7 +441,7 @@ To remove oh-my-opencode:
 
 ### Agents: Your Teammates
 
-- **OmO** (`anthropic/claude-opus-4-5`): **The default agent.** A powerful AI orchestrator for OpenCode. Plans, delegates, and executes complex tasks using specialized subagents with aggressive parallel execution. Emphasizes background task delegation and todo-driven workflow. Uses Claude Opus 4.5 with extended thinking (32k budget) for maximum reasoning capability.
+- **Sisyphus** (`anthropic/claude-opus-4-5`): **The default agent.** A powerful AI orchestrator for OpenCode. Plans, delegates, and executes complex tasks using specialized subagents with aggressive parallel execution. Emphasizes background task delegation and todo-driven workflow. Uses Claude Opus 4.5 with extended thinking (32k budget) for maximum reasoning capability.
 - **oracle** (`openai/gpt-5.2`): Architecture, code review, strategy. Uses GPT-5.2 for its stellar logical reasoning and deep analysis. Inspired by AmpCode.
 - **librarian** (`anthropic/claude-sonnet-4-5`): Multi-repo analysis, doc lookup, implementation examples. Uses Claude Sonnet 4.5 for deep codebase understanding and GitHub research with evidence-based answers. Inspired by AmpCode.
 - **explore** (`opencode/grok-code`): Fast codebase exploration and pattern matching. Claude Code uses Haiku; we use Grok—it's free, blazing fast, and plenty smart for file traversal. Inspired by Claude Code.
@@ -720,7 +720,7 @@ Override built-in agent settings:
 
 Each agent supports: `model`, `temperature`, `top_p`, `prompt`, `tools`, `disable`, `description`, `mode`, `color`, `permission`.
 
-You can also override settings for `OmO` (the main orchestrator) and `build` (the default agent) using the same options.
+You can also override settings for `Sisyphus` (the main orchestrator) and `build` (the default agent) using the same options.
 
 #### Permission Options
 
@@ -758,16 +758,16 @@ Or disable via `disabled_agents` in `~/.config/opencode/oh-my-opencode.json` or 
 
 Available agents: `oracle`, `librarian`, `explore`, `frontend-ui-ux-engineer`, `document-writer`, `multimodal-looker`
 
-### OmO Agent
+### Sisyphus Agent
 
-When enabled (default), OmO adds two primary agents and demotes the built-in agents to subagents:
+When enabled (default), Sisyphus adds two primary agents and demotes the built-in agents to subagents:
 
-- **OmO**: Primary orchestrator agent (Claude Opus 4.5)
-- **OmO-Plan**: Inherits all settings from OpenCode's plan agent at runtime (description appended with "OhMyOpenCode version")
+- **Sisyphus**: Primary orchestrator agent (Claude Opus 4.5)
+- **Planner-Sisyphus**: Inherits all settings from OpenCode's plan agent at runtime (description appended with "OhMyOpenCode version")
 - **build**: Demoted to subagent
 - **plan**: Demoted to subagent
 
-To disable OmO and restore the original build/plan agents:
+To disable Sisyphus and restore the original build/plan agents:
 
 ```json
 {
@@ -777,16 +777,16 @@ To disable OmO and restore the original build/plan agents:
 }
 ```
 
-You can also customize OmO and OmO-Plan like other agents:
+You can also customize Sisyphus and Planner-Sisyphus like other agents:
 
 ```json
 {
   "agents": {
-    "OmO": {
+    "Sisyphus": {
       "model": "anthropic/claude-sonnet-4",
       "temperature": 0.3
     },
-    "OmO-Plan": {
+    "Planner-Sisyphus": {
       "model": "openai/gpt-5.2"
     }
   }
@@ -795,7 +795,7 @@ You can also customize OmO and OmO-Plan like other agents:
 
 | Option     | Default | Description                                                                                                                                   |
 | ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `disabled` | `false` | When `true`, disables OmO agents and restores original build/plan as primary. When `false` (default), OmO and OmO-Plan become primary agents. |
+| `disabled` | `false` | When `true`, disables Sisyphus agents and restores original build/plan as primary. When `false` (default), Sisyphus and Planner-Sisyphus become primary agents. |
 
 ### Hooks
 
