@@ -218,11 +218,14 @@ export function createTodoContinuationEnforcer(ctx: PluginInput): TodoContinuati
             return
           }
 
-          log(`[${HOOK_NAME}] Injecting continuation prompt`, { sessionID, agent: prevMessage?.agent })
+          log(`[${HOOK_NAME}] Injecting continuation prompt`, { sessionID, agent: prevMessage?.agent, model: prevMessage?.model })
           await ctx.client.session.prompt({
             path: { id: sessionID },
             body: {
               agent: prevMessage?.agent,
+              model: prevMessage?.model?.providerID && prevMessage?.model?.modelID
+                ? { providerID: prevMessage.model.providerID, modelID: prevMessage.model.modelID }
+                : undefined,
               parts: [
                 {
                   type: "text",

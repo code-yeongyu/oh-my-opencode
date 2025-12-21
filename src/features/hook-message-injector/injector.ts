@@ -20,7 +20,19 @@ export function findNearestMessageWithFields(messageDir: string): StoredMessage 
       try {
         const content = readFileSync(join(messageDir, file), "utf-8")
         const msg = JSON.parse(content) as StoredMessage
-        if (msg.agent && msg.model?.providerID && msg.model?.modelID) {
+        if (msg.model?.providerID && msg.model?.modelID) {
+          return msg
+        }
+      } catch {
+        continue
+      }
+    }
+
+    for (const file of files) {
+      try {
+        const content = readFileSync(join(messageDir, file), "utf-8")
+        const msg = JSON.parse(content) as StoredMessage
+        if (msg.agent) {
           return msg
         }
       } catch {
