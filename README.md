@@ -167,7 +167,12 @@ If you don't want all this, as mentioned, you can just pick and choose specific 
 
 ### For Humans
 
-Let the LLM Agent handle the grunt work. Paste this into a fresh opencode session:
+**One-liner install (recommended):**
+```bash
+bun run https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/src/auto-installer.ts
+```
+
+Or let an LLM Agent handle it. Paste this into a fresh opencode session:
 ```
 Install and configure by following the instructions here https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads/master/README.md
 ```

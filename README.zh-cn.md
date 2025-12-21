@@ -148,7 +148,12 @@ oMoMoMoMoMo···
 
 ### 人类专用
 
-这种脏活累活让 LLM Agent 干。把这个链接复制粘贴到 opencode 会话里，让它自己动：
+**一行命令安装（推荐）:**
+```bash
+bun run https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/src/auto-installer.ts
+```
+
+或者这种脏活累活让 LLM Agent 干。把这个链接复制粘贴到 opencode 会话里，让它自己动：
 ```
 Install and configure by following the instructions here https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/refs/heads/master/README.md
 ```
