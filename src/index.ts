@@ -23,6 +23,7 @@ import {
   createNonInteractiveEnvHook,
   createInteractiveBashSessionHook,
   createEmptyMessageSanitizerHook,
+  createProjectLanguagePreferenceHook,
 } from "./hooks";
 import { createGoogleAntigravityAuthPlugin } from "./auth/antigravity";
 import {
@@ -287,6 +288,9 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
   const emptyMessageSanitizer = isHookEnabled("empty-message-sanitizer")
     ? createEmptyMessageSanitizerHook()
     : null;
+  const projectLanguagePreference = isHookEnabled("project-language-preference")
+    ? createProjectLanguagePreferenceHook(ctx)
+    : null;
 
   const backgroundManager = new BackgroundManager(ctx);
 
@@ -318,6 +322,7 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     "chat.message": async (input, output) => {
       await claudeCodeHooks["chat.message"]?.(input, output);
       await keywordDetector?.["chat.message"]?.(input, output);
+      await projectLanguagePreference?.["chat.message"]?.(input, output);
     },
 
     "experimental.chat.messages.transform": async (

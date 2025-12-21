@@ -63,6 +63,7 @@ export const HookNameSchema = z.enum([
   "non-interactive-env",
   "interactive-bash-session",
   "empty-message-sanitizer",
+  "project-language-preference",
 ])
 
 export const AgentOverrideConfigSchema = z.object({
