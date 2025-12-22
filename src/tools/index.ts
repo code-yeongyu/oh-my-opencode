@@ -20,6 +20,7 @@ import {
 import { grep } from "./grep"
 import { glob } from "./glob"
 import { slashcommand } from "./slashcommand"
+import { morph_edit } from "./morph-fast-apply"
 
 export { interactive_bash, startBackgroundCheck as startTmuxCheck } from "./interactive-bash"
 export { getTmuxPath } from "./interactive-bash/utils"
@@ -63,4 +64,5 @@ export const builtinTools = {
   grep,
   glob,
   slashcommand,
+  morph_edit,
 }
