@@ -14,6 +14,9 @@ import { subagentSessions } from "../claude-code-session-state"
 
 type OpencodeClient = PluginInput["client"]
 
+const COMPLETED_TASK_RETENTION_MS = 5 * 60 * 1000
+const MAX_COMPLETED_TASKS = 50
+
 interface MessagePartInfo {
   sessionID?: string
   type?: string
@@ -58,12 +61,14 @@ export class BackgroundManager {
   private client: OpencodeClient
   private directory: string
   private pollingInterval?: Timer
+  private cleanupTimers: Map<string, Timer>
 
   constructor(ctx: PluginInput) {
     this.tasks = new Map()
     this.notifications = new Map()
     this.client = ctx.client
     this.directory = ctx.directory
+    this.cleanupTimers = new Map()
   }
 
   async launch(input: LaunchInput): Promise<BackgroundTask> {
@@ -130,6 +135,7 @@ export class BackgroundManager {
         existingTask.completedAt = new Date()
         this.markForNotification(existingTask)
         this.notifyParentSession(existingTask)
+        this.scheduleTaskCleanup(existingTask.id)
       }
     })
 
@@ -222,6 +228,7 @@ export class BackgroundManager {
       if (!task || task.status !== "running") return
 
       this.checkSessionTodos(sessionID).then((hasIncompleteTodos) => {
+        if (task.status !== "running") return
         if (hasIncompleteTodos) {
           log("[background-agent] Task has incomplete todos, waiting for todo-continuation:", task.id)
           return
@@ -231,6 +238,7 @@ export class BackgroundManager {
         task.completedAt = new Date()
         this.markForNotification(task)
         this.notifyParentSession(task)
+        this.scheduleTaskCleanup(task.id)
         log("[background-agent] Task completed via session.idle event:", task.id)
       })
     }
@@ -249,6 +257,11 @@ export class BackgroundManager {
         task.error = "Session deleted"
       }
 
+      const cleanupTimer = this.cleanupTimers.get(task.id)
+      if (cleanupTimer) {
+        clearTimeout(cleanupTimer)
+        this.cleanupTimers.delete(task.id)
+      }
       this.tasks.delete(task.id)
       this.clearNotificationsForTask(task.id)
       subagentSessions.delete(sessionID)
@@ -292,6 +305,48 @@ export class BackgroundManager {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval)
       this.pollingInterval = undefined
+    }
+  }
+
+  private scheduleTaskCleanup(taskId: string): void {
+    const existingTimer = this.cleanupTimers.get(taskId)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+    }
+
+    const timer = setTimeout(() => {
+      this.clearNotificationsForTask(taskId)
+      this.tasks.delete(taskId)
+      this.cleanupTimers.delete(taskId)
+      log("[background-agent] Cleaned up completed task after TTL:", taskId)
+    }, COMPLETED_TASK_RETENTION_MS)
+    timer.unref?.()
+
+    this.cleanupTimers.set(taskId, timer)
+    this.enforceMaxCompletedTasks()
+  }
+
+  private enforceMaxCompletedTasks(): void {
+    const completedTasks: Array<{ id: string; completedAt: Date }> = []
+    for (const task of this.tasks.values()) {
+      if (task.status !== "running" && task.completedAt) {
+        completedTasks.push({ id: task.id, completedAt: task.completedAt })
+      }
+    }
+
+    if (completedTasks.length > MAX_COMPLETED_TASKS) {
+      completedTasks.sort((a, b) => a.completedAt.getTime() - b.completedAt.getTime())
+      const toRemove = completedTasks.slice(0, completedTasks.length - MAX_COMPLETED_TASKS)
+      for (const { id } of toRemove) {
+        this.clearNotificationsForTask(id)
+        this.tasks.delete(id)
+        const timer = this.cleanupTimers.get(id)
+        if (timer) {
+          clearTimeout(timer)
+          this.cleanupTimers.delete(id)
+        }
+        log("[background-agent] Evicted old completed task due to max limit:", id)
+      }
     }
   }
 
@@ -376,6 +431,7 @@ export class BackgroundManager {
 
         if (sessionStatus.type === "idle") {
           const hasIncompleteTodos = await this.checkSessionTodos(task.sessionID)
+          if (task.status !== "running") continue
           if (hasIncompleteTodos) {
             log("[background-agent] Task has incomplete todos via polling, waiting:", task.id)
             continue
@@ -385,6 +441,7 @@ export class BackgroundManager {
           task.completedAt = new Date()
           this.markForNotification(task)
           this.notifyParentSession(task)
+          this.scheduleTaskCleanup(task.id)
           log("[background-agent] Task completed via polling:", task.id)
           continue
         }
