@@ -2,7 +2,7 @@ import type { AgentConfig } from "@opencode-ai/sdk"
 import type { BuiltinAgentName, AgentOverrideConfig, AgentOverrides, AgentFactory } from "./types"
 import { createSisyphusAgent } from "./sisyphus"
 import { createOracleAgent } from "./oracle"
-import { librarianAgent } from "./librarian"
+import { createLibrarianAgent } from "./librarian"
 import { exploreAgent } from "./explore"
 import { frontendUiUxEngineerAgent } from "./frontend-ui-ux-engineer"
 import { documentWriterAgent } from "./document-writer"
@@ -14,7 +14,7 @@ type AgentSource = AgentFactory | AgentConfig
 const agentSources: Record<BuiltinAgentName, AgentSource> = {
   Sisyphus: createSisyphusAgent,
   oracle: createOracleAgent,
-  librarian: librarianAgent,
+  librarian: createLibrarianAgent,
   explore: exploreAgent,
   "frontend-ui-ux-engineer": frontendUiUxEngineerAgent,
   "document-writer": documentWriterAgent,
