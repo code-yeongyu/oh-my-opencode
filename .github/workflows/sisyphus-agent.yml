@@ -46,7 +46,16 @@ jobs:
           echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
           gh auth status
 
-      # Install Bun with caching
+      - name: Ensure tmux is available (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          if ! command -v tmux >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends tmux
+          fi
+          tmux -V
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
