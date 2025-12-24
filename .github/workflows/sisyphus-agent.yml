@@ -59,7 +59,7 @@ jobs:
         run: |
           # Install OpenCode
           curl -fsSL https://opencode.ai/install | bash
-          export PATH="$HOME/.local/bin:$PATH"
+          export PATH="$HOME/.opencode/bin:$PATH"
           opencode --version
           
           # Install oh-my-opencode using the proper installer
@@ -131,7 +131,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
+          export PATH="$HOME/.opencode/bin:$PATH"
           
           PROMPT="You are sisyphus-dev-ai, an AI coding agent.
 
