@@ -6,8 +6,14 @@ on:
       prompt:
         description: "Custom prompt"
         required: false
+      pr_number:
+        description: "PR number (optional)"
+        required: false
+        type: string
   issue_comment:
     types: [created]
+  pull_request:
+    types: [opened, ready_for_review, review_requested, reopened]
   pull_request_review:
     types: [submitted]
   pull_request_review_comment:
@@ -16,9 +22,24 @@ on:
 jobs:
   agent:
     runs-on: ubuntu-latest
-    # @sisyphus-dev-ai mention only (maintainers, exclude self)
+    # Concurrency: one run per PR/issue at a time
+    concurrency:
+      group: sisyphus-${{ github.event.pull_request.number || github.event.issue.number || github.run_id }}
+      cancel-in-progress: true
+
+    # Trigger conditions (MAINTAINERS ONLY for all events):
+    # 1. workflow_dispatch (manual) - any actor with workflow access
+    # 2. pull_request events - only if PR author is maintainer
+    # 3. @sisyphus-dev-ai mention - only from maintainers
     if: |
       github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.draft != true &&
+       contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association) &&
+       (github.event.action == 'opened' ||
+        github.event.action == 'ready_for_review' ||
+        github.event.action == 'reopened' ||
+        (github.event.action == 'review_requested' && github.event.requested_reviewer.login == 'sisyphus-dev-ai'))) ||
       (contains(github.event.comment.body || github.event.review.body, '@sisyphus-dev-ai') &&
        (github.event.comment.user.login || github.event.review.user.login) != 'sisyphus-dev-ai' &&
        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association || github.event.review.author_association))
@@ -192,21 +213,51 @@ jobs:
 
           cat "$OPENCODE_JSON"
 
-      # Collect context
+      - name: Check Recent Reviews
+        id: recent_review
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          PR_NUM="${{ github.event.pull_request.number }}"
+          REVIEWS=$(gh api "repos/${{ github.repository }}/pulls/${PR_NUM}/reviews" \
+            --jq '[.[] | select(.user.login == "sisyphus-dev-ai" and (.submitted_at | fromdateiso8601) > (now - 600))] | length' 2>/dev/null || echo "0")
+          
+          if [[ "$REVIEWS" -gt 0 ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "🚫 Sisyphus already reviewed this PR in the last 10 minutes"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Collect Context
         id: context
+        if: steps.recent_review.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           EVENT="${{ github.event_name }}"
 
-          if [[ "$EVENT" == "issue_comment" ]]; then
+          if [[ "$EVENT" == "pull_request" ]]; then
+            echo "mode=review" >> $GITHUB_OUTPUT
+            echo "type=pr" >> $GITHUB_OUTPUT
+            echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "action=${{ github.event.action }}" >> $GITHUB_OUTPUT
+            AUTHOR="${{ github.event.pull_request.user.login }}"
+            
+            if [[ "${{ github.event.action }}" == "review_requested" ]]; then
+              REQUESTED_BY="${{ github.event.sender.login }}"
+              echo "requested_by=$REQUESTED_BY" >> $GITHUB_OUTPUT
+            fi
+            COMMENT=""
+            COMMENT_ID=""
+          elif [[ "$EVENT" == "issue_comment" ]]; then
+            echo "mode=agent" >> $GITHUB_OUTPUT
             ISSUE_NUM="${{ github.event.issue.number }}"
             COMMENT="${{ github.event.comment.body }}"
             AUTHOR="${{ github.event.comment.user.login }}"
             COMMENT_ID="${{ github.event.comment.id }}"
 
-            # Check if PR or Issue
             if gh api "repos/${{ github.repository }}/issues/${ISSUE_NUM}" | jq -e '.pull_request' > /dev/null; then
               echo "type=pr" >> $GITHUB_OUTPUT
               echo "number=${ISSUE_NUM}" >> $GITHUB_OUTPUT
@@ -215,16 +266,27 @@ jobs:
               echo "number=${ISSUE_NUM}" >> $GITHUB_OUTPUT
             fi
           elif [[ "$EVENT" == "pull_request_review_comment" ]]; then
+            echo "mode=agent" >> $GITHUB_OUTPUT
             echo "type=pr" >> $GITHUB_OUTPUT
             echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             COMMENT="${{ github.event.comment.body }}"
             AUTHOR="${{ github.event.comment.user.login }}"
             COMMENT_ID="${{ github.event.comment.id }}"
           elif [[ "$EVENT" == "pull_request_review" ]]; then
+            echo "mode=agent" >> $GITHUB_OUTPUT
             echo "type=pr" >> $GITHUB_OUTPUT
             echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
             COMMENT="${{ github.event.review.body }}"
             AUTHOR="${{ github.event.review.user.login }}"
+            COMMENT_ID=""
+          elif [[ "$EVENT" == "workflow_dispatch" ]]; then
+            echo "mode=agent" >> $GITHUB_OUTPUT
+            if [[ -n "${{ inputs.pr_number }}" ]]; then
+              echo "type=pr" >> $GITHUB_OUTPUT
+              echo "number=${{ inputs.pr_number }}" >> $GITHUB_OUTPUT
+            fi
+            AUTHOR="${{ github.actor }}"
+            COMMENT="${{ inputs.prompt }}"
             COMMENT_ID=""
           fi
 
@@ -234,9 +296,55 @@ jobs:
           echo "author=$AUTHOR" >> $GITHUB_OUTPUT
           echo "comment_id=$COMMENT_ID" >> $GITHUB_OUTPUT
 
-      # Add :eyes: reaction (as sisyphus-dev-ai)
+      - name: Collect PR Context for Review
+        id: pr_context
+        if: steps.context.outputs.mode == 'review' && steps.recent_review.outputs.skip != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          PR_NUM="${{ steps.context.outputs.number }}"
+          
+          CHANGED_FILES=$(gh pr view "$PR_NUM" --json files --jq '.files[].path' | head -30)
+          echo "files<<FILES_EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
+          echo "FILES_EOF" >> $GITHUB_OUTPUT
+          
+          FILES_COUNT=$(gh pr view "$PR_NUM" --json files --jq '.files | length')
+          echo "files_count=$FILES_COUNT" >> $GITHUB_OUTPUT
+          
+          DIFF=$(gh pr diff "$PR_NUM" 2>/dev/null | head -c 40000 || echo "")
+          echo "diff<<DIFF_EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "DIFF_EOF" >> $GITHUB_OUTPUT
+          
+          UNRESOLVED=$(gh api graphql -f query='
+          query($owner: String!, $repo: String!, $pr: Int!) {
+            repository(owner: $owner, name: $repo) {
+              pullRequest(number: $pr) {
+                reviewThreads(first: 30) {
+                  nodes {
+                    isResolved
+                    path
+                    line
+                    comments(first: 3) {
+                      nodes { author { login } body }
+                    }
+                  }
+                }
+              }
+            }
+          }' -f owner="${{ github.repository_owner }}" -f repo="${{ github.event.repository.name }}" -F pr="$PR_NUM" \
+            --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)]' 2>/dev/null || echo "[]")
+          
+          UNRESOLVED_COUNT=$(echo "$UNRESOLVED" | jq 'length' 2>/dev/null || echo "0")
+          echo "unresolved_count=$UNRESOLVED_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "unresolved_threads<<THREADS_EOF" >> $GITHUB_OUTPUT
+          echo "$UNRESOLVED" | jq -c '.' >> $GITHUB_OUTPUT
+          echo "THREADS_EOF" >> $GITHUB_OUTPUT
+
       - name: Add eyes reaction
-        if: steps.context.outputs.comment_id != ''
+        if: steps.context.outputs.comment_id != '' && steps.recent_review.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
@@ -244,7 +352,7 @@ jobs:
             -X POST -f content="eyes" || true
 
       - name: Add working label
-        if: steps.context.outputs.number != ''
+        if: steps.context.outputs.number != '' && steps.recent_review.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
@@ -265,12 +373,73 @@ jobs:
           fi
 
       - name: Run OpenCode
+        if: steps.recent_review.outputs.skip != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           export PATH="$HOME/.opencode/bin:$PATH"
 
-          PROMPT="
+          MODE="${{ steps.context.outputs.mode }}"
+          
+          if [[ "$MODE" == "review" ]]; then
+            PROMPT="
+          Your username is @sisyphus-dev-ai. You've been requested to review PR #${{ steps.context.outputs.number }}.
+
+          ## Review Context
+          - Repository: ${{ github.repository }}
+          - PR Title: ${{ github.event.pull_request.title }}
+          - Author: @${{ github.event.pull_request.user.login }}
+          - Trigger: ${{ steps.context.outputs.action }}
+          - Requested by: @${{ steps.context.outputs.requested_by }}
+          - Default Branch: ${{ github.event.repository.default_branch }}
+          - Changed Files: ${{ steps.pr_context.outputs.files_count }}
+          - Unresolved Threads: ${{ steps.pr_context.outputs.unresolved_count }}
+
+          ## Changed Files (first 30)
+          \`\`\`
+          ${{ steps.pr_context.outputs.files }}
+          \`\`\`
+
+          ## Unresolved Review Threads
+          ${{ steps.pr_context.outputs.unresolved_threads }}
+
+          ## PR Diff (truncated to 40KB)
+          \`\`\`diff
+          ${{ steps.pr_context.outputs.diff }}
+          \`\`\`
+
+          ---
+
+          ## Review Instructions
+
+          1. **Analyze** the PR changes thoroughly using todo tools
+          2. **Check** for:
+             - Bugs or potential issues
+             - Type safety (no \`as any\`, \`@ts-ignore\`)
+             - Following existing codebase patterns
+             - Test coverage if applicable
+          3. **Address** any unresolved threads from previous reviews
+          4. **Submit** your review using heredoc:
+             \`\`\`bash
+             gh pr review ${{ steps.context.outputs.number }} --comment --body \"\$(cat <<'EOF'
+             ## 🔍 Sisyphus Code Review
+             
+             ### Summary
+             [Your concise summary]
+             
+             ### Issues Found
+             [List any issues with severity: CRITICAL/WARNING/SUGGESTION]
+             
+             ### Verdict
+             [APPROVE/REQUEST_CHANGES/COMMENT with reason]
+             EOF
+             )\"
+             \`\`\`
+
+          Use \`--approve\` for approval, \`--request-changes\` if changes needed.
+          Be concise. Focus on issues, not praise. Follow oh-my-opencode conventions (bun, TypeScript, kebab-case dirs)."
+          else
+            PROMPT="
           Your username is @sisyphus-dev-ai, mentioned by @${{ steps.context.outputs.author }} in ${{ github.repository }}.
 
           ## Context
@@ -287,7 +456,8 @@ jobs:
           First, acknowledge with \`gh issue comment ${{ steps.context.outputs.number }} --body \"👋 Hey @${{ steps.context.outputs.author }}! I'm on it...\"\`
 
           Then write everything using the todo tools.
-          Then investigate and satisfy the request. Only if user requested to you to work explicitely, then use plan agent to plan, todo obsessivley then create a PR to \`${{ github.event.repository.default_branch }}\` branch."
+          Then investigate and satisfy the request. Only if user requested to you to work explicitly, then use plan agent to plan, todo obsessively then create a PR to \`${{ github.event.repository.default_branch }}\` branch."
+          fi
 
           opencode run "$PROMPT"
 
