@@ -1,8 +1,8 @@
 import { join } from "node:path"
 import { homedir } from "node:os"
-import { xdgData } from "xdg-basedir"
+import { getOpenCodeStorageDir } from "../../shared/data-path"
 
-export const OPENCODE_STORAGE = join(xdgData ?? join(homedir(), ".local", "share"), "opencode", "storage")
+export const OPENCODE_STORAGE = getOpenCodeStorageDir()
 export const MESSAGE_STORAGE = join(OPENCODE_STORAGE, "message")
 export const PART_STORAGE = join(OPENCODE_STORAGE, "part")
 export const TODO_DIR = join(homedir(), ".claude", "todos")
