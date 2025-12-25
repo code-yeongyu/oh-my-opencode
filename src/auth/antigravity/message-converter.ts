@@ -39,6 +39,7 @@ interface OpenAIToolCall {
 
 interface GeminiPart {
   text?: string
+  thought?: boolean
   functionCall?: {
     name: string
     args: Record<string, unknown>
@@ -162,6 +163,11 @@ function convertContentToParts(content: string | OpenAIContentPart[] | undefined
   for (const part of content) {
     if (part.type === "text" && part.text) {
       parts.push({ text: part.text })
+    } else if (part.type === "thinking" || part.type === "redacted_thinking") {
+      parts.push({ 
+        thought: true, 
+        text: (part.thinking as string) || part.text || "" 
+      })
     } else if (part.type === "image_url" && part.image_url?.url) {
       const url = part.image_url.url
       if (url.startsWith("data:")) {
