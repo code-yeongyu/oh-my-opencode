@@ -228,9 +228,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     return undefined;
   };
 
-  const todoContinuationEnforcer = isHookEnabled("todo-continuation-enforcer")
-    ? createTodoContinuationEnforcer(ctx)
-    : null;
   const contextWindowMonitor = isHookEnabled("context-window-monitor")
     ? createContextWindowMonitorHook(ctx)
     : null;
@@ -240,13 +237,6 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
   const sessionNotification = isHookEnabled("session-notification")
     ? createSessionNotification(ctx)
     : null;
-
-  // Wire up recovery state tracking between session-recovery and todo-continuation-enforcer
-  // This prevents the continuation enforcer from injecting prompts during active recovery
-  if (sessionRecovery && todoContinuationEnforcer) {
-    sessionRecovery.setOnAbortCallback(todoContinuationEnforcer.markRecovering);
-    sessionRecovery.setOnRecoveryCompleteCallback(todoContinuationEnforcer.markRecoveryComplete);
-  }
 
   const commentChecker = isHookEnabled("comment-checker")
     ? createCommentCheckerHooks()
@@ -305,6 +295,15 @@ const OhMyOpenCodePlugin: Plugin = async (ctx) => {
     : null;
 
   const backgroundManager = new BackgroundManager(ctx);
+
+  const todoContinuationEnforcer = isHookEnabled("todo-continuation-enforcer")
+    ? createTodoContinuationEnforcer(ctx, { backgroundManager })
+    : null;
+
+  if (sessionRecovery && todoContinuationEnforcer) {
+    sessionRecovery.setOnAbortCallback(todoContinuationEnforcer.markRecovering);
+    sessionRecovery.setOnRecoveryCompleteCallback(todoContinuationEnforcer.markRecoveryComplete);
+  }
 
   const backgroundNotificationHook = isHookEnabled("background-notification")
     ? createBackgroundNotificationHook(backgroundManager)
