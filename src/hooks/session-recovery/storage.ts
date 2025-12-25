@@ -223,6 +223,38 @@ export function findMessagesWithOrphanThinking(sessionID: string): string[] {
   return result
 }
 
+/**
+ * Find the most recent thinking content from previous assistant messages
+ * Following Anthropic's recommendation to include thinking blocks from previous turns
+ */
+function findLastThinkingContent(sessionID: string, beforeMessageID: string): string {
+  const messages = readMessages(sessionID)
+
+  // Find the index of the current message
+  const currentIndex = messages.findIndex(m => m.id === beforeMessageID)
+  if (currentIndex === -1) return ""
+
+  // Search backwards through previous assistant messages
+  for (let i = currentIndex - 1; i >= 0; i--) {
+    const msg = messages[i]
+    if (msg.role !== "assistant") continue
+
+    // Look for thinking parts in this message
+    const parts = readParts(msg.id)
+    for (const part of parts) {
+      if (THINKING_TYPES.has(part.type)) {
+        // Found thinking content - return it
+        const thinking = (part as { thinking?: string }).thinking
+        if (thinking && thinking.trim().length > 0) {
+          return thinking
+        }
+      }
+    }
+  }
+
+  return ""
+}
+
 export function prependThinkingPart(sessionID: string, messageID: string): boolean {
   const partDir = join(PART_STORAGE, messageID)
 
@@ -230,13 +262,16 @@ export function prependThinkingPart(sessionID: string, messageID: string): boole
     mkdirSync(partDir, { recursive: true })
   }
 
+  // Try to get thinking content from previous turns (Anthropic's recommendation)
+  const previousThinking = findLastThinkingContent(sessionID, messageID)
+
   const partId = `prt_0000000000_thinking`
   const part = {
     id: partId,
     sessionID,
     messageID,
     type: "thinking",
-    thinking: "",
+    thinking: previousThinking || "[Continuing from previous reasoning]",
     synthetic: true,
   }
 
