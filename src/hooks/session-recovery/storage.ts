@@ -244,9 +244,12 @@ function findLastThinkingContent(sessionID: string, beforeMessageID: string): st
     for (const part of parts) {
       if (THINKING_TYPES.has(part.type)) {
         // Found thinking content - return it
-        const thinking = (part as { thinking?: string }).thinking
-        if (thinking && thinking.trim().length > 0) {
-          return thinking
+        // Note: 'thinking' type uses 'thinking' property, 'reasoning' type uses 'text' property
+        const thinking = (part as { thinking?: string; text?: string }).thinking
+        const reasoning = (part as { thinking?: string; text?: string }).text
+        const content = thinking || reasoning
+        if (content && content.trim().length > 0) {
+          return content
         }
       }
     }
