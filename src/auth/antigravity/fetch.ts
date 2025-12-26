@@ -146,6 +146,19 @@ async function attemptFetch(
       })
     }
 
+    // WORKAROUND: Disable thinking for Claude models with assistant history
+    // OpenCode doesn't preserve thinking block signatures in history, causing Claude API errors:
+    // "assistant message must start with a thinking block"
+    // Strip thinking config when there's history to prevent this error
+    const messages = parsedBody.messages as Array<{ role?: string }> | undefined
+    const hasAssistantHistory = messages?.some((m) => m.role === "assistant")
+    const isClaudeThinkingModel = modelName?.toLowerCase().includes("thinking") || 
+                                   modelName?.toLowerCase().includes("claude")
+    if (hasAssistantHistory && isClaudeThinkingModel && parsedBody.thinking) {
+      debugLog(`[THINKING] Stripping thinking config for Claude with history (prevents signature error)`)
+      delete parsedBody.thinking
+    }
+
     if (parsedBody.tools && Array.isArray(parsedBody.tools)) {
       const normalizedTools = normalizeToolsForGemini(parsedBody.tools as OpenAITool[])
       if (normalizedTools) {
