@@ -164,10 +164,25 @@ function convertContentToParts(content: string | OpenAIContentPart[] | undefined
     if (part.type === "text" && part.text) {
       parts.push({ text: part.text })
     } else if (part.type === "thinking" || part.type === "redacted_thinking") {
-      parts.push({ 
-        thought: true, 
-        text: (part.thinking as string) || part.text || "" 
-      })
+      // Extract signature from various possible locations
+      const signature = (part.signature as string) || 
+                       (part.thoughtSignature as string) ||
+                       (part.thought_signature as string)
+      
+      if (signature) {
+        // Include thinking block WITH signature (required for multi-turn Claude)
+        parts.push({ 
+          thought: true, 
+          text: (part.thinking as string) || part.text || "",
+          thought_signature: signature
+        })
+        debugLog(`Preserved thinking block with signature: ${signature.substring(0, 30)}...`)
+      } else {
+        // SKIP unsigned thinking blocks to avoid Claude API error:
+        // "assistant message must start with a thinking block"
+        // Claude requires signed thinking blocks in history, unsigned ones cause errors
+        debugLog(`Skipping unsigned thinking block (would cause Claude API error)`)
+      }
     } else if (part.type === "image_url" && part.image_url?.url) {
       const url = part.image_url.url
       if (url.startsWith("data:")) {
