@@ -274,7 +274,7 @@ async function transformResponseWithThinking(
 
   let result
   if (streaming) {
-    result = await transformStreamingResponse(response)
+    result = await transformStreamingResponse(response, fetchInstanceId)
   } else {
     result = await transformResponse(response)
   }

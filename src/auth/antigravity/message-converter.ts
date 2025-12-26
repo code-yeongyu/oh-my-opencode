@@ -51,6 +51,8 @@ interface GeminiPart {
     mimeType: string
     data: string
   }
+  thought?: boolean
+  thoughtSignature?: string
   thought_signature?: string
   [key: string]: unknown
 }
@@ -175,6 +177,16 @@ function convertContentToParts(content: string | OpenAIContentPart[] | undefined
           })
         }
       }
+    } else if (part.type === "thinking" || part.type === "redacted_thinking" || part.type === "reasoning") {
+      const thoughtPart: GeminiPart = {
+        thought: true,
+        text: (part as Record<string, unknown>).thinking as string || part.text || "",
+      }
+      const signature = (part as Record<string, unknown>).signature as string | undefined
+      if (signature) {
+        thoughtPart.thoughtSignature = signature
+      }
+      parts.push(thoughtPart)
     }
   }
 

@@ -330,12 +330,18 @@ export function transformCandidateThinking(candidate: GeminiCandidate): GeminiCa
   const transformedParts = content.parts.map((part) => {
     if (part && typeof part === "object" && part.thought === true) {
       thinkingTexts.push(part.text || "")
-      // Transform to reasoning format
-      return {
-        ...part,
+      // Transform to AI SDK reasoning format with proper providerMetadata namespace
+      const result: Record<string, unknown> = {
         type: "reasoning" as const,
-        thought: undefined, // Remove Gemini-specific field
+        text: part.text || "",
       }
+      // Wrap signature in providerMetadata.anthropic for AI SDK compatibility
+      if (part.thoughtSignature) {
+        result.providerMetadata = {
+          anthropic: { signature: part.thoughtSignature },
+        }
+      }
+      return result
     }
     return part
   })
@@ -363,18 +369,23 @@ export function transformCandidateThinking(candidate: GeminiCandidate): GeminiCa
  */
 export function transformAnthropicThinking(
   content: Array<{ type?: string; text?: string; signature?: string }>,
-): Array<{ type?: string; text?: string; signature?: string }> {
+): Array<{ type?: string; text?: string; signature?: string; providerMetadata?: Record<string, unknown> }> {
   if (!content || !Array.isArray(content)) {
     return content
   }
 
   return content.map((block) => {
     if (block && typeof block === "object" && block.type === "thinking") {
-      return {
+      const result: { type: string; text: string; providerMetadata?: Record<string, unknown> } = {
         type: "reasoning",
         text: block.text || "",
-        ...(block.signature ? { signature: block.signature } : {}),
       }
+      if (block.signature) {
+        result.providerMetadata = {
+          anthropic: { signature: block.signature },
+        }
+      }
+      return result
     }
     return block
   })

@@ -10,6 +10,23 @@
  */
 
 import type { AntigravityError, AntigravityUsage } from "./types"
+import { setThoughtSignature } from "./thought-signature-store"
+
+function debugLog(message: string): void {
+  if (process.env.ANTIGRAVITY_DEBUG === "1") {
+    console.log(`[antigravity-response] ${message}`)
+  }
+}
+
+let _lastStreamingSignature: string | null = null
+
+export function getLastStreamingSignature(): string | null {
+  return _lastStreamingSignature
+}
+
+export function clearLastStreamingSignature(): void {
+  _lastStreamingSignature = null
+}
 
 /**
  * Usage metadata extracted from Antigravity response headers
@@ -308,6 +325,13 @@ function transformSseLine(line: string): string {
   try {
     const parsed = JSON.parse(json) as Record<string, unknown>
 
+    // Extract signature from streaming chunk
+    const sig = extractSignatureFromStreamChunk(parsed)
+    if (sig) {
+      _lastStreamingSignature = sig
+      debugLog(`[STREAM] Captured signature: ${sig.substring(0, 30)}...`)
+    }
+
     // Unwrap { response: { ... } } wrapper
     if (parsed.response !== undefined) {
       return `data: ${JSON.stringify(parsed.response)}`
@@ -318,6 +342,49 @@ function transformSseLine(line: string): string {
     // If parsing fails, return original line
     return line
   }
+}
+
+function extractSignatureFromStreamChunk(parsed: Record<string, unknown>): string | undefined {
+  const checkParts = (parts: unknown[]): string | undefined => {
+    for (const part of parts) {
+      if (part && typeof part === "object") {
+        const p = part as Record<string, unknown>
+        const sig = (p.thoughtSignature || p.thought_signature) as string | undefined
+        if (sig && typeof sig === "string") {
+          return sig
+        }
+      }
+    }
+    return undefined
+  }
+
+  // Check candidates array
+  const candidates = parsed.candidates as Array<Record<string, unknown>> | undefined
+  if (candidates && Array.isArray(candidates)) {
+    for (const candidate of candidates) {
+      const content = candidate.content as Record<string, unknown> | undefined
+      const parts = content?.parts as unknown[] | undefined
+      if (parts && Array.isArray(parts)) {
+        const sig = checkParts(parts)
+        if (sig) return sig
+      }
+    }
+  }
+
+  // Check response.candidates wrapper
+  const response = parsed.response as Record<string, unknown> | undefined
+  if (response?.candidates && Array.isArray(response.candidates)) {
+    for (const candidate of response.candidates as Array<Record<string, unknown>>) {
+      const content = candidate.content as Record<string, unknown> | undefined
+      const parts = content?.parts as unknown[] | undefined
+      if (parts && Array.isArray(parts)) {
+        const sig = checkParts(parts)
+        if (sig) return sig
+      }
+    }
+  }
+
+  return undefined
 }
 
 /**
@@ -339,10 +406,11 @@ export function transformStreamingPayload(payload: string): string {
     .join("\n")
 }
 
-function createSseTransformStream(): TransformStream<Uint8Array, Uint8Array> {
+function createSseTransformStream(fetchInstanceId?: string): TransformStream<Uint8Array, Uint8Array> {
   const decoder = new TextDecoder()
   const encoder = new TextEncoder()
   let buffer = ""
+  let capturedSignature: string | null = null
 
   return new TransformStream({
     transform(chunk, controller) {
@@ -354,12 +422,27 @@ function createSseTransformStream(): TransformStream<Uint8Array, Uint8Array> {
         const transformed = transformSseLine(line)
         controller.enqueue(encoder.encode(transformed + "\n"))
       }
+
+      if (_lastStreamingSignature && !capturedSignature) {
+        capturedSignature = _lastStreamingSignature
+      }
     },
     flush(controller) {
       if (buffer) {
         const transformed = transformSseLine(buffer)
         controller.enqueue(encoder.encode(transformed))
       }
+
+      if (_lastStreamingSignature) {
+        capturedSignature = _lastStreamingSignature
+      }
+
+      if (capturedSignature && fetchInstanceId) {
+        setThoughtSignature(fetchInstanceId, capturedSignature)
+        debugLog(`[STREAM] Stored signature for ${fetchInstanceId}: ${capturedSignature.substring(0, 30)}...`)
+      }
+
+      _lastStreamingSignature = null
     },
   })
 }
@@ -371,9 +454,13 @@ function createSseTransformStream(): TransformStream<Uint8Array, Uint8Array> {
  * Each line is transformed immediately and yielded to the client.
  *
  * @param response - The SSE response from Antigravity API
+ * @param fetchInstanceId - Optional fetch instance ID for signature storage
  * @returns TransformResult with transformed streaming response
  */
-export async function transformStreamingResponse(response: Response): Promise<TransformResult> {
+export async function transformStreamingResponse(
+  response: Response,
+  fetchInstanceId?: string
+): Promise<TransformResult> {
   const headers = new Headers(response.headers)
   const usage = extractUsageFromHeaders(headers)
 
@@ -451,7 +538,7 @@ export async function transformStreamingResponse(response: Response): Promise<Tr
   headers.delete("content-encoding")
   headers.set("content-type", "text/event-stream; charset=utf-8")
 
-  const transformStream = createSseTransformStream()
+  const transformStream = createSseTransformStream(fetchInstanceId)
   const transformedBody = response.body.pipeThrough(transformStream)
 
   return {
