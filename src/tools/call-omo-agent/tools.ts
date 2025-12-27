@@ -1,8 +1,35 @@
 import { tool, type PluginInput } from "@opencode-ai/plugin"
+import { existsSync, mkdirSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
 import { ALLOWED_AGENTS, CALL_OMO_AGENT_DESCRIPTION } from "./constants"
 import type { CallOmoAgentArgs } from "./types"
 import type { BackgroundManager } from "../../features/background-agent"
 import { log } from "../../shared/logger"
+import { getOpenCodeStorageDir } from "../../shared/data-path"
+
+const INLINE_OUTPUT_MAX_CHARS = 15000
+
+function getTaskOutputsDir(): string {
+  const dir = join(getOpenCodeStorageDir(), "task-outputs")
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+  return dir
+}
+
+function saveOutputToFile(sessionId: string, content: string): string {
+  const outputDir = getTaskOutputsDir()
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+  const filename = `omo-agent_${sessionId}_${timestamp}.md`
+  const filePath = join(outputDir, filename)
+  writeFileSync(filePath, content, "utf-8")
+  return filePath
+}
+
+function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  return text.slice(0, maxLength) + "..."
+}
 
 export function createCallOmoAgent(
   ctx: PluginInput,
@@ -170,6 +197,22 @@ async function executeSync(
   const responseText = textParts.map((p: any) => p.text).join("\n")
 
   log(`[call_omo_agent] Got response, length: ${responseText.length}`)
+
+  if (responseText.length > INLINE_OUTPUT_MAX_CHARS) {
+    const filePath = saveOutputToFile(sessionID, responseText)
+    const preview = truncateText(responseText, 2000)
+    return `Agent Response (Large Output)
+
+**Output saved to file**: ${filePath}
+
+## Preview (first 2000 chars)
+
+${preview}
+
+<task_metadata>
+session_id: ${sessionID}
+</task_metadata>`
+  }
 
   const output =
     responseText + "\n\n" + ["<task_metadata>", `session_id: ${sessionID}`, "</task_metadata>"].join("\n")

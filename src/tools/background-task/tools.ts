@@ -1,10 +1,13 @@
 import { tool, type PluginInput } from "@opencode-ai/plugin"
-import { existsSync, readdirSync } from "node:fs"
+import { existsSync, readdirSync, mkdirSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import type { BackgroundManager, BackgroundTask } from "../../features/background-agent"
 import type { BackgroundTaskArgs, BackgroundOutputArgs, BackgroundCancelArgs } from "./types"
 import { BACKGROUND_TASK_DESCRIPTION, BACKGROUND_OUTPUT_DESCRIPTION, BACKGROUND_CANCEL_DESCRIPTION } from "./constants"
 import { findNearestMessageWithFields, MESSAGE_STORAGE } from "../../features/hook-message-injector"
+import { getOpenCodeStorageDir } from "../../shared/data-path"
+
+const INLINE_OUTPUT_MAX_CHARS = 15000
 
 type OpencodeClient = PluginInput["client"]
 
@@ -88,6 +91,23 @@ Use \`background_output\` tool with task_id="${task.id}" to check progress:
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function getTaskOutputsDir(): string {
+  const dir = join(getOpenCodeStorageDir(), "task-outputs")
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+  return dir
+}
+
+function saveOutputToFile(taskId: string, content: string): string {
+  const outputDir = getTaskOutputsDir()
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+  const filename = `background-task_${taskId}_${timestamp}.md`
+  const filePath = join(outputDir, filename)
+  writeFileSync(filePath, content, "utf-8")
+  return filePath
 }
 
 function truncateText(text: string, maxLength: number): string {
@@ -204,6 +224,23 @@ Session ID: ${task.sessionID}
     .join("\n")
 
   const duration = formatDuration(task.startedAt, task.completedAt)
+
+  if (textContent.length > INLINE_OUTPUT_MAX_CHARS) {
+    const filePath = saveOutputToFile(task.id, textContent)
+    const preview = truncateText(textContent, 2000)
+    return `Task Result (Large Output)
+
+Task ID: ${task.id}
+Description: ${task.description}
+Duration: ${duration}
+Session ID: ${task.sessionID}
+
+**Output saved to file**: ${filePath}
+
+## Preview (first 2000 chars)
+
+${preview}`
+  }
 
   return `Task Result
 
