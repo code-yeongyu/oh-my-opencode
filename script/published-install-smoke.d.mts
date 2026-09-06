@@ -7,3 +7,5 @@ export declare function parseSmokeArgs(argv: readonly string[]): {
   tarballPath: string | null
   keep: boolean
 }
+
+export declare function extractTarball(tarballPath: string, workingDirectory: string): Promise<string>

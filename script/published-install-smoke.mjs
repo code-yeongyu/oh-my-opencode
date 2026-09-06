@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process"
 import { existsSync } from "node:fs"
 import { mkdtemp, mkdir, readdir, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { join, relative, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
 // The published payload is the only artifact a user installs, and `npm pack --dry-run` cannot prove
@@ -49,10 +49,19 @@ function packPublishedTarball(packageSpec, workingDirectory) {
   })
 }
 
-async function extractTarball(tarballPath, workingDirectory) {
+// `tar` resolves to GNU tar wherever Git Bash is on PATH, which includes the bash shell GitHub
+// Actions runs on windows runners. GNU tar reads a colon before the first slash as a remote host,
+// so an absolute Windows archive path dies with `Cannot connect to C: resolve failed`, and an
+// absolute `-C` path fails to open right after it. Running from the working directory and
+// addressing both arguments relative to it keeps every path colon-free, which GNU tar and bsdtar
+// accept alike.
+export async function extractTarball(tarballPath, workingDirectory) {
   const extractedRoot = join(workingDirectory, "extracted")
   await mkdir(extractedRoot, { recursive: true })
-  execFileSync("tar", ["-xzf", tarballPath, "-C", extractedRoot], { stdio: ["ignore", "inherit", "inherit"] })
+  execFileSync("tar", ["-xzf", relative(workingDirectory, tarballPath), "-C", relative(workingDirectory, extractedRoot)], {
+    cwd: workingDirectory,
+    stdio: ["ignore", "inherit", "inherit"],
+  })
   return join(extractedRoot, "package")
 }
 
