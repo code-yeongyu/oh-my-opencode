@@ -170,15 +170,16 @@ export function createPluginModule(overrides: Partial<PluginModuleDeps> = {}): P
     startupMigration ??= deps.runOpenCodeStartupMigration({ cwd: input.directory })
     const startupValidation = deps.loadConfigChain(input.directory)
     const startupDiagnostics = startupValidation.valid ? [] : startupValidation.messages
-    const skippedConflicts = startupMigration.results
+    const skippedConflictPaths = startupMigration.results
       .flatMap((result) => result.diagnostics)
-      .filter((diagnostic) => diagnostic.startsWith("skipped:"))
+      .map((diagnostic) => /^skipped: (.*?) legacy=/.exec(diagnostic)?.[1])
+      .filter((path): path is string => path !== undefined)
     deps.log("[config-migration] startup completed", {
       error: startupMigration.error,
       journalResumed: startupMigration.journalResumed,
       migratedFrom: startupMigration.migratedFrom,
       skippedConflictCount: startupMigration.skippedConflictCount,
-      ...(skippedConflicts.length > 0 ? { skippedConflicts } : {}),
+      ...(skippedConflictPaths.length > 0 ? { skippedConflictPaths } : {}),
     })
     if (startupMigration.error !== undefined) {
       console.warn(`[config-migration] legacy configuration changes were not applied: ${startupMigration.error}`)
