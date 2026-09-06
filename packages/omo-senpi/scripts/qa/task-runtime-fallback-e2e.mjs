@@ -220,6 +220,7 @@ function runScenario(scenario, outDir) {
 function selectedScenarios(raw) {
   if (raw === undefined || raw.trim().length === 0) return scenarios
   const requested = new Set(raw.split(",").map((name) => name.trim()).filter((name) => name.length > 0))
+  if (requested.size === 0) throw new Error("empty fallback scenario selector")
   const selected = scenarios.filter((scenario) => requested.has(scenario.name))
   if (selected.length !== requested.size) {
     const missing = [...requested].filter((name) => !scenarios.some((scenario) => scenario.name === name))
@@ -231,7 +232,17 @@ function selectedScenarios(raw) {
 function run() {
   const outDir = resolve(process.env.TASK_RUNTIME_FALLBACK_OUT_DIR ?? join(process.cwd(), ".omo", "evidence", "task-runtime-fallback"))
   mkdirSync(outDir, { recursive: true })
-  const verdicts = selectedScenarios(process.env.OMO_FALLBACK_SCENARIOS)
+  let selected
+  try {
+    selected = selectedScenarios(process.env.OMO_FALLBACK_SCENARIOS)
+  } catch {
+    const summary = { result: "FAIL", reason: "invalid_selector", scenarios: [] }
+    writeFileSync(join(outDir, "verdict.json"), `${JSON.stringify(summary, null, 2)}\n`)
+    console.log(JSON.stringify(summary))
+    process.exitCode = 1
+    return
+  }
+  const verdicts = selected
     .map((scenario) => runScenario(scenario, outDir))
   const result = verdicts.every((verdict) => verdict.result === "PASS") ? "PASS" : "FAIL"
   const summary = { result, scenarios: verdicts }
@@ -268,6 +279,15 @@ function selfTest() {
   }
   if (selectedScenarios("explore-qwen-fallback,librarian-qwen-fallback").length !== 2) {
     throw new Error("scenario selection failed")
+  }
+  for (const selector of ["typo-selector", ","]) {
+    let rejected = false
+    try {
+      selectedScenarios(selector)
+    } catch {
+      rejected = true
+    }
+    if (!rejected) throw new Error("invalid selector was accepted")
   }
   rmSync(sandbox.root, { recursive: true, force: true })
   console.log("SELF-TEST OK")

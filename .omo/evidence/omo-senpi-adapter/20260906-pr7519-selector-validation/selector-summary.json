@@ -1,0 +1,28 @@
+{
+  "red": {
+    "unknown": {
+      "exit": 1,
+      "verdictExists": false
+    },
+    "delimiterOnly": {
+      "exit": 0,
+      "result": "PASS",
+      "scenarioCount": 0
+    }
+  },
+  "green": {
+    "selectors": ["typo-selector", ",", ",,"],
+    "exit": 1,
+    "stdoutAndVerdict": {
+      "result": "FAIL",
+      "reason": "invalid_selector",
+      "scenarios": []
+    },
+    "scenarioDirectoryCount": 0
+  },
+  "validLiveFallback": {
+    "result": "PASS",
+    "scenarios": ["explore-qwen-fallback", "librarian-qwen-fallback"],
+    "sandboxCleanup": "PASS"
+  }
+}
