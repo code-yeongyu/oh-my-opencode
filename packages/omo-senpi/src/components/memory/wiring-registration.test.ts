@@ -3,7 +3,6 @@ import { mkdtemp } from "node:fs/promises"
 import { realpathSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-
 import { buildIdentityPaths, GitMemoryRepo } from "@oh-my-opencode/memory-core"
 import { IdleInjectionCoordinator } from "../../extension/idle-injection-coordinator"
 import { createMemoryBinding } from "./binding"
@@ -29,27 +28,11 @@ describe("memorian registration wiring", () => {
     const launched = new Promise<void>((resolve) => { launch = resolve })
     const pi = new MemoryFakeExtensionAPI()
     const wiring = createMemoryWiring({
-      sessions: new Map([[sessionId, { context }]]),
-      loadConfig: () => loadedMemoryConfig(memorySettings()), cwd: () => root, env: {},
-      createMemorianRunner: () => ({
-        launch: async () => {
-          launch?.()
-          return { status: "nudged" as const, nudges: [{ path: "reference/rollouts.md", hint: "Drain nodes first." }], runId: "run-tool-boundary" }
-        },
-        whenIdle: async () => {},
-      }),
+      sessions: new Map([[sessionId, { context }]]), loadConfig: () => loadedMemoryConfig(memorySettings()), cwd: () => root, env: {},
+      createMemorianRunner: () => ({ launch: async () => { launch?.(); return { status: "nudged" as const, nudges: [{ path: "reference/rollouts.md", hint: "Drain nodes first." }], runId: "run-tool-boundary" } }, whenIdle: async () => {} }),
     })
-    const eventCtx = {
-      sessionManager: {
-        getSessionId: () => sessionId,
-        getEntries: () => [{ type: "message", message: { role: "user", content: "Drain nodes before rollout." } }],
-        getBranch: () => [{ type: "message", message: { role: "user", content: "Drain nodes before rollout." } }],
-      },
-      hasPendingMessages: () => false, isIdle: () => false,
-      modelRegistry: { find: () => undefined, getProviderAuth: () => undefined },
-    }
-    const coordinator = new IdleInjectionCoordinator(() => {})
-    wiring.registerStatic(pi, { ...componentContext(), idleCoordinator: coordinator })
+    const eventCtx = { sessionManager: { getSessionId: () => sessionId, getEntries: () => [{ type: "message", message: { role: "user", content: "Drain nodes before rollout." } }], getBranch: () => [{ type: "message", message: { role: "user", content: "Drain nodes before rollout." } }] }, hasPendingMessages: () => false, isIdle: () => false, modelRegistry: { find: () => undefined, getProviderAuth: () => undefined } }
+    wiring.registerStatic(pi, { ...componentContext(), idleCoordinator: new IdleInjectionCoordinator(() => {}) })
     await pi.dispatch("tool_call", { toolName: "read", input: { path: "reference/rollouts.md" } }, eventCtx)
     await launched
     await wiring.whenIdle()

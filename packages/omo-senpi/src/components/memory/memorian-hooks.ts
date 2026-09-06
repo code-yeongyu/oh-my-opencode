@@ -31,7 +31,6 @@ export function registerMemorianHooks(pi: SenpiExtensionAPI, options: MemorianHo
     }
     return undefined
   })
-
   if (options.registerSettle !== false) {
     pi.on("agent_settled", (_payload, eventCtx) => {
       if (branchEntryCount(eventCtx) > 0) options.trigger.onSettled(eventCtx)
