@@ -6070,6 +6070,65 @@ describe("BackgroundManager.handleEvent - session.error", () => {
     manager.shutdown()
   })
 
+  test("records only terminal errors for untracked sessions", () => {
+    //#given
+    const manager = createBackgroundManager()
+
+    try {
+      //#when
+      manager.handleEvent({
+        type: "session.error",
+        properties: {
+          sessionID: "ses_untracked",
+          error: { name: "ProviderModelNotFoundError", message: "Model not found: opencode/gpt-5-nano" },
+        },
+      })
+      manager.handleEvent({
+        type: "session.error",
+        properties: {
+          sessionID: "ses_transient",
+          error: { name: "APIError", message: "503 overloaded", statusCode: 503 },
+        },
+      })
+
+      //#then
+      expect(manager.getTerminalChildError?.("ses_untracked")).toBe("Model not found: opencode/gpt-5-nano")
+      expect(manager.getTerminalChildError?.("ses_transient")).toBeNull()
+      expect(manager.getTerminalChildError?.("ses_unknown")).toBeNull()
+    } finally {
+      manager.shutdown()
+    }
+  })
+
+  test("clears a recorded terminal error once the session produces output again", () => {
+    //#given
+    const manager = createBackgroundManager()
+
+    try {
+      manager.handleEvent({
+        type: "session.error",
+        properties: {
+          sessionID: "ses_recovered",
+          error: { name: "ProviderModelNotFoundError", message: "Model not found: opencode/gpt-5-nano" },
+        },
+      })
+      expect(manager.getTerminalChildError?.("ses_recovered")).toBe("Model not found: opencode/gpt-5-nano")
+
+      //#when
+      manager.handleEvent({
+        type: "message.updated",
+        properties: {
+          info: { id: "msg_recovered", sessionID: "ses_recovered", role: "assistant" },
+        },
+      })
+
+      //#then
+      expect(manager.getTerminalChildError?.("ses_recovered")).toBeNull()
+    } finally {
+      manager.shutdown()
+    }
+  })
+
   test("does not terminate task on session.error when session is still alive", async () => {
     //#given
     const manager = createBackgroundManagerWithOptions({

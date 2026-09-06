@@ -275,6 +275,7 @@ export class BackgroundManager {
   private parentWakeTextDeltaBuffers: Map<string, string> = new Map()
   private observedOutputSessions: Set<string> = new Set()
   private observedIncompleteTodosBySession: Map<string, boolean> = new Map()
+  private terminalChildErrors: Map<string, string> = new Map()
   private rootDescendantCounts: Map<string, number>
   private preStartDescendantReservations: Set<string>
   private enableParentSessionNotifications: boolean
@@ -1122,6 +1123,10 @@ The fallback retry session is now created and can be inspected directly.
     return this.hasUndeliveredParentWake(sessionID) || this.parentWakeNotifier.getDispatchedParentWakes().has(sessionID)
   }
 
+  getTerminalChildError(sessionID: string): string | null {
+    return this.terminalChildErrors.get(sessionID) ?? null
+  }
+
   private hasUndeliveredParentWake(sessionID: string): boolean {
     return (
       this.parentWakeNotifier.hasNotificationPreparation(sessionID) ||
@@ -1629,6 +1634,7 @@ The fallback retry session is now created and can be inspected directly.
       const sessionID = resolveMessageEventSessionID(props)
       const role = info.role
       if (!sessionID) return
+      this.terminalChildErrors.delete(sessionID)
       if (isEmptyNoProgressAssistantTurnInfo(info)) {
         const dispatchedWake = this.parentWakeNotifier.getDispatchedParentWakes().get(sessionID)
         if (dispatchedWake) {
@@ -1826,6 +1832,13 @@ The fallback retry session is now created and can be inspected directly.
 
       const resolved = this.resolveTaskAttemptBySession(sessionID)
       if (this.parentWakeNotifier.getDispatchedParentWakes().has(sessionID) || !resolved?.isCurrent) {
+        if (!resolved) {
+          const errorMessage = props ? getSessionErrorMessage(props) : undefined
+          const errorName = extractErrorName(props?.error)
+          if (errorMessage && isTerminalSessionError({ name: errorName, message: errorMessage })) {
+            this.terminalChildErrors.set(sessionID, errorMessage)
+          }
+        }
         void this.requeueDispatchedParentWake(sessionID, "session.error")
           .then(() => {
             this.clearParentWakeTextDeltaBuffers(sessionID)
@@ -1861,6 +1874,7 @@ The fallback retry session is now created and can be inspected directly.
     if (event.type === "session.deleted") {
       const sessionID = resolveSessionEventID(props)
       if (!sessionID) return
+      this.terminalChildErrors.delete(sessionID)
       this.clearSessionOutputObserved(sessionID)
       this.clearSessionTodoObservation(sessionID)
 
