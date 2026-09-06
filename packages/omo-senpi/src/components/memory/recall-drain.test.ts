@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test"
+import type { BeforeAgentStartEventResult } from "@code-yeongyu/senpi"
 import {
+  GitMemoryRepo,
   PendingNudges,
   RecallLedger,
   renderNudgeBlock,
@@ -34,7 +36,7 @@ afterEach(async () => {
 
 interface WiringInput {
   readonly context?: MemoryIdentityContext | undefined
-  readonly repo: any
+  readonly repo: GitMemoryRepo
   readonly identity: MemoryIdentityContext
   readonly recall?: Partial<ReturnType<typeof memorySettings>["recall"]>
   readonly env?: Record<string, string | undefined>
@@ -73,9 +75,9 @@ async function dispatch(
   pi: MemoryFakeExtensionAPI,
   ctx: unknown,
   prompt?: string,
-): Promise<any | undefined> {
+): Promise<BeforeAgentStartEventResult | undefined> {
   const results = await pi.dispatch("before_agent_start", beforeAgentStart(prompt), ctx)
-  return results.find((result) => result !== undefined) as any | undefined
+  return results.find((result) => result !== undefined) as BeforeAgentStartEventResult | undefined
 }
 
 const NUDGE = { path: ROLLOUTS_PATH, hint: "Drain kubernetes nodes before a rollout." }

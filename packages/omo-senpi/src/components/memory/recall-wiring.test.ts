@@ -39,7 +39,7 @@ afterEach(async () => {
 
 interface WiringInput {
   readonly context?: MemoryIdentityContext | undefined
-  readonly repo: any
+  readonly repo: GitMemoryRepo
   readonly identity: MemoryIdentityContext
   readonly recall?: Partial<ReturnType<typeof memorySettings>["recall"]>
   readonly env?: Record<string, string | undefined>
