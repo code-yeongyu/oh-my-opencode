@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, symlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join, relative, sep } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
+import { canonicalUltraworkDirectiveRelativePath } from "../scripts/canonical-ultrawork-directive.mjs";
 
 import {
 	codexHarnessToolCompatibility,
@@ -100,10 +104,43 @@ test("#given the aggregate sync implementation #when its skill adaptation pipeli
 	assert.match(script, /await adaptSkillForCodex\(skillName\)/);
 });
 
-test("#given the published package layout #when sync-skills resolves shared skill helpers #then it uses files shipped beside the package instead of a workspace-only dependency", async () => {
-	const script = await readFile(join(pluginRoot, "scripts", "sync-skills.mjs"), "utf8");
+test("#given the flattened plugin cache the Codex installer produces #when sync-skills runs inside it #then it resolves shared skills through the linked package and writes the skill tree", async () => {
+	// given: installMarketplaceLocally copies plugin/ (minus node_modules) to
+	// <CODEX_HOME>/plugins/cache/<marketplace>/omo/<version>, materializes the canonical directive
+	// under that root, links @oh-my-opencode/shared-skills through the rewritten file: dependency,
+	// and only then runs `npm run sync:skills` there. packages/shared-skills is NOT a sibling of
+	// that directory, so a checkout-relative import cannot resolve in this layout.
+	const codexHome = await mkdtemp(join(tmpdir(), "omo-codex-cache-layout-"));
+	const cachedPluginRoot = join(codexHome, "plugins", "cache", "sisyphuslabs", "omo", "0.0.0-cache-layout");
+	await cp(pluginRoot, cachedPluginRoot, {
+		recursive: true,
+		filter: (source) => {
+			const parts = relative(pluginRoot, source).split(sep);
+			return parts[0] !== "skills" && !parts.includes("node_modules") && !parts.includes(".git");
+		},
+	});
+	const directiveTarget = join(cachedPluginRoot, canonicalUltraworkDirectiveRelativePath);
+	await mkdir(dirname(directiveTarget), { recursive: true });
+	await cp(join(repositoryRoot, "..", canonicalUltraworkDirectiveRelativePath), directiveTarget);
+	const linkedSharedSkills = join(cachedPluginRoot, "node_modules", "@oh-my-opencode", "shared-skills");
+	await mkdir(dirname(linkedSharedSkills), { recursive: true });
+	await symlink(join(repositoryRoot, "shared-skills"), linkedSharedSkills, "dir");
 
-	assert.match(script, /from "\.\.\/\.\.\/\.\.\/shared-skills\/index\.mjs"/);
-	assert.match(script, /from "\.\.\/\.\.\/\.\.\/shared-skills\/skill-source-filter\.mjs"/);
-	assert.doesNotMatch(script, /from "@oh-my-opencode\/shared-skills/);
+	try {
+		// when: the installer runs `npm run sync:skills` here, whose script is `node scripts/sync-skills.mjs`
+		const result = spawnSync(process.execPath, [join(cachedPluginRoot, "scripts", "sync-skills.mjs")], {
+			cwd: cachedPluginRoot,
+			encoding: "utf8",
+		});
+
+		// then
+		assert.equal(result.status, 0, `sync-skills failed in the cache layout:\n${result.stderr}`);
+		const syncedSkills = (await readdir(join(cachedPluginRoot, "skills"), { withFileTypes: true }))
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => entry.name);
+		assert.ok(syncedSkills.includes("ultrawork"), "component skill ultrawork must be synced");
+		assert.ok(syncedSkills.includes("git-master"), "shared skill git-master must be synced from the linked package");
+	} finally {
+		await rm(codexHome, { recursive: true, force: true });
+	}
 });
