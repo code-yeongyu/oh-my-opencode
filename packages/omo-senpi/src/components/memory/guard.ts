@@ -157,8 +157,7 @@ function isForbiddenTarget(rawPath: string, cwd: string, roots: GuardRoots, recu
   const ownRoots = uniquePaths([roots.ownRoot, canonicalizeFromNearestExisting(roots.ownRoot)])
   for (const candidate of candidates) {
     if (ownRoots.some((root) => isWithin(root, candidate))) continue
-    if (agentsRoots.some((root) => candidate === root)) return true
-    if (recursive && agentsRoots.some((root) => isWithin(candidate, root))) return true
+    if (agentsRoots.some((root) => isWithin(root, candidate))) return true
   }
   return false
 }

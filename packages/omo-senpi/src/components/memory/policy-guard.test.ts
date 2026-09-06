@@ -127,6 +127,18 @@ describe("memory filesystem policy guard", () => {
     expect(await check(policy, "enumerate", canonical(setup.agentsRoot), "ls")).toMatchObject({ allow: false })
   })
 
+  test("#given the registered policy #when a non-recursive read targets a foreign identity file #then it is denied", async () => {
+    const setup = fixture()
+    registerMemoryFilesystemPolicy(setup.pi, setup.own)
+    const policy = registeredPolicy(setup)
+
+    const foreign = canonical(setup.foreignFile)
+    expect(await check(policy, "read", foreign)).toEqual({
+      allow: false,
+      reason: `cross-identity memory access denied: read ${foreign}`,
+    })
+  })
+
   test("#given the registered policy #when read and write target a foreign identity file #then both are denied with the stable reason", async () => {
     const setup = fixture()
     registerMemoryFilesystemPolicy(setup.pi, setup.own)
