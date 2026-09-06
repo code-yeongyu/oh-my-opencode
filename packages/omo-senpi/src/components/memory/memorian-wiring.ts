@@ -6,7 +6,7 @@
 // Nothing here is awaited by the host. A settle returns the instant the work is queued: the gate is
 // advisory, and a turn must never pay for the advice about the turn that just ended.
 
-import { PendingNudges, type RecallCandidate } from "@oh-my-opencode/memory-core"
+import { PendingNudges, type RecallCandidate, type RecallNudge } from "@oh-my-opencode/memory-core"
 
 import type { ComponentLogger } from "../../extension/types"
 import { createOncePerSessionGuard } from "../task/usage-guidance"
@@ -61,7 +61,7 @@ export interface MemorianGateWiringOptions {
    * the host disposes the ctx the moment the handler returns and every later read throws.
    */
   readonly resolveModelRegistry?: (eventCtx: unknown) => ChildModelRegistry | undefined
-  readonly pendingFor?: (context: MemoryIdentityContext) => Pick<PendingNudges, "take">
+  readonly pendingFor?: (context: MemoryIdentityContext) => Pick<PendingNudges, "take" | "write" | "delete">
   readonly logger?: ComponentLogger
 }
 
@@ -159,7 +159,7 @@ export function createMemorianGateWiring(options: MemorianGateWiringOptions): Me
           ...(modelRegistry === undefined ? {} : { modelRegistry }),
         })
         if (result !== null && typeof result === "object" && "status" in result) {
-          const outcome = result as { status?: string; cause?: string; model?: string; candidateCount?: number; reason?: string; runId?: string }
+          const outcome = result as { status?: string; cause?: string; model?: string; candidateCount?: number; reason?: string; runId?: string; nudges?: readonly RecallNudge[] }
           if (outcome.status === "skipped" || outcome.status === "failed" || outcome.status === "dropped") {
             const cause = typeof outcome.cause === "string" ? outcome.cause : "unknown"
             if (outcome.status !== "skipped" || skippedOnce(`${collected.sessionId}:${cause}`)) {
@@ -172,6 +172,24 @@ export function createMemorianGateWiring(options: MemorianGateWiringOptions): Me
                 ...(typeof outcome.reason === "string" ? { reason: outcome.reason } : {}),
                 ...(typeof outcome.runId === "string" ? { runId: outcome.runId } : {}),
               } satisfies MemorianGateRecord)
+            }
+          }
+          if (outcome.status === "nudged" && outcome.nudges !== undefined) {
+            try {
+              if (epochOf(collected.sessionId) !== launchedAtEpoch) {
+                options.logger?.warn("memorian gate nudges dropped after compaction", {
+                  sessionId: collected.sessionId,
+                  launchedAtEpoch,
+                })
+              } else {
+                const pending = pendingFor(collected.context)
+                await pending.write(collected.sessionId, outcome.nudges, { epoch: launchedAtEpoch })
+                if (epochOf(collected.sessionId) !== launchedAtEpoch) {
+                  await pending.delete(collected.sessionId)
+                }
+              }
+            } catch (error) {
+              options.logger?.warn("omo-senpi memorian gate failed", { error: describe(error) })
             }
           }
         }

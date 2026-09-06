@@ -8,7 +8,7 @@ import { buildIdentityPaths, type RecallCandidate } from "@oh-my-opencode/memory
 import { ModelRegistry, ModelRuntime } from "../../senpi-test-runtime"
 import { createMemoryBinding } from "./binding"
 import { createMemoryIdentityContext, type MemoryIdentityContext } from "./context"
-import { createMemorianGateWiring, type MemorianGatePort } from "./memorian-wiring"
+import { createMemorianGateWiring, type MemorianGatePort, type MemorianGateWiringOptions } from "./memorian-wiring"
 import type { CollectedRecallCandidates } from "./recall-wiring"
 
 export const IDENTITY = "memorian-agent"
@@ -52,6 +52,7 @@ export function gate(input: {
   readonly whenIdle?: () => Promise<void>
   readonly logs?: Array<{ message: string, details?: unknown }>
   readonly entries?: Array<{ customType: string; data: unknown }>
+  readonly pendingFor?: MemorianGateWiringOptions["pendingFor"]
 }) {
   const wiring = createMemorianGateWiring({
     snapshotSession: () => ({ id: SESSION_ID, entries: [] }),
@@ -74,6 +75,7 @@ export function gate(input: {
             error: (message, details) => input.logs?.push({ message, details }),
           },
         }),
+    ...(input.pendingFor === undefined ? {} : { pendingFor: input.pendingFor }),
   })
   if (input.entries !== undefined) wiring.attachEntrySink((customType, data) => input.entries?.push({ customType, data }))
   return wiring
