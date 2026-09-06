@@ -49,7 +49,7 @@ describe("memorian delivery persistence", () => {
     await expect(f.pending.take(sessionId, { currentEpoch: 0 })).resolves.toEqual([])
   })
 
-  test("#given pending nudges #when prompt delivery drains #then the pending file is deleted", async () => {
+  test("#given accepted nudges #when prompt delivery drains the in-memory queue #then the pending file stays for take() to consume", async () => {
     const f = await fixture()
     await f.delivery.accept(sessionId, f.context, [nudge], 0)
     expect(f.delivery.drainForPrompt(sessionId, f.context)).toEqual([nudge])

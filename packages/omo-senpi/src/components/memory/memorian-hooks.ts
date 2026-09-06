@@ -24,10 +24,14 @@ export function registerMemorianHooks(pi: SenpiExtensionAPI, options: MemorianHo
   })
 
   pi.on("tool_result", async (_payload, eventCtx) => {
-    const sessionId = options.resolveSessionId(eventCtx)
-    const context = sessionId === undefined ? undefined : options.resolveContext(sessionId)
-    if (sessionId !== undefined && context !== undefined) {
-      await options.delivery.onToolResult(sessionId, context, eventCtx)
+    try {
+      const sessionId = options.resolveSessionId(eventCtx)
+      const context = sessionId === undefined ? undefined : options.resolveContext(sessionId)
+      if (sessionId !== undefined && context !== undefined) {
+        await options.delivery.onToolResult(sessionId, context, eventCtx)
+      }
+    } catch (error: unknown) {
+      options.logger?.warn("omo-senpi memorian tool_result delivery failed", { error: describe(error) })
     }
     return undefined
   })

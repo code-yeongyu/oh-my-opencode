@@ -90,6 +90,24 @@ describe("registerMemorianHooks", () => {
     expect(settled).toHaveLength(1)
   })
 
+  test("#given a delivery whose onToolResult rejects #when tool_result dispatches #then the handler resolves undefined and a warning is logged", async () => {
+    const pi = new FakeExtensionAPI()
+    const warnings: unknown[][] = []
+    registerMemorianHooks(pi, {
+      trigger: { onToolCall: () => {}, onSettled: () => {} },
+      delivery: { onToolResult: async () => { throw new Error("boom") } },
+      resolveContext: () => identity,
+      resolveSessionId: () => "session-warning",
+      logger: { warn: (...args) => { warnings.push(args) }, info: () => {}, error: () => {} },
+    })
+
+    const result = await pi.dispatch("tool_result", {}, context("session-warning"))
+
+    expect(result).toEqual([undefined])
+    expect(warnings).toHaveLength(1)
+    expect(warnings[0]?.[0]).toBe("omo-senpi memorian tool_result delivery failed")
+  })
+
   test("#given a trigger that throws #when tool_call dispatches #then it returns undefined and warns", async () => {
     const pi = new FakeExtensionAPI()
     const warnings: unknown[][] = []

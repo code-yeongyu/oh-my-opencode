@@ -126,18 +126,20 @@ describe("memorian observability contract", () => {
 
     const wake = await fixture()
     const wakeEntries: unknown[] = []
+    let wakeEntryReady: (() => void) | undefined
+    const wakeReady = new Promise<void>((resolve) => { wakeEntryReady = resolve })
     const coordinator = new IdleInjectionCoordinator(() => undefined)
     const wakeDelivery = createMemorianDelivery({
       ledgerFor: () => wake.ledger,
       pendingFor: () => wake.pending,
       coordinator,
       sendMessage: () => undefined,
-      appendEntry: (_type, data) => wakeEntries.push(data),
+      appendEntry: (_type, data) => { wakeEntries.push(data); if (typeof data === "object" && data !== null && "via" in data && (data as { via: unknown }).via === "wake") wakeEntryReady?.() },
     })
     await wakeDelivery.accept("wake-session", wake.context, [nudge], 0)
     coordinator.enqueue({ key: "task-completion:1", source: "task-completion", content: "done" })
     coordinator.flushOnIdle()
-    await Promise.resolve()
+    await Promise.race([wakeReady, new Promise<void>((_, r) => setTimeout(() => r(new Error("wake ready timeout")), 5000))])
 
     const prompt = await fixture()
     const promptEntries: unknown[] = []
@@ -163,6 +165,7 @@ describe("memorian observability contract", () => {
     })
 
     expect(steerEntries).toEqual([{ version: 1, nudges: [nudge], via: "steer" }])
+    await Promise.race([wakeReady, new Promise<void>((_, r) => setTimeout(() => r(new Error("wake ready timeout")), 5000))])
     expect(wakeEntries).toEqual([{ version: 1, nudges: [nudge], via: "wake" }])
     expect(pi.entries.map((entry) => entry.data)).toEqual([{ version: 1, nudges: [nudge], via: "prompt" }])
   })
