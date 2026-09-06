@@ -99,14 +99,20 @@ export interface CollectedRecallCandidates {
 export interface MemoryRecallWiring {
   register(pi: MemoryExtensionAPI): void
   /** Settle-time seam: lexical candidates for the completed turn, or undefined when there are none. */
-  collectCandidates(eventCtx: unknown): Promise<CollectedRecallCandidates | undefined>
+  collectCandidates(
+    eventCtx: unknown,
+    extraTexts?: readonly string[],
+  ): Promise<CollectedRecallCandidates | undefined>
   /**
    * Synchronous ctx read for detached callers. Returns undefined when the ctx carries no usable
    * session; never throws, so a disposed ctx degrades to "no candidates" instead of a failed turn.
    */
   snapshotSession(eventCtx: unknown): RecallSessionSnapshot | undefined
   /** Collection over an already-captured snapshot; touches no ctx at all. */
-  collectCandidatesFromSnapshot(snapshot: RecallSessionSnapshot): Promise<CollectedRecallCandidates | undefined>
+  collectCandidatesFromSnapshot(
+    snapshot: RecallSessionSnapshot,
+    extraTexts?: readonly string[],
+  ): Promise<CollectedRecallCandidates | undefined>
 }
 
 // A memory worker child must never receive recall hints: it reasons ABOUT memory, and an injected
@@ -130,17 +136,17 @@ export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): Me
     ...(options.logger === undefined ? {} : { logger: options.logger }),
   })
 
-  async function collect(eventCtx: unknown): Promise<CollectedRecallCandidates | undefined> {
+  async function collect(eventCtx: unknown, extraTexts: readonly string[] = []): Promise<CollectedRecallCandidates | undefined> {
     if (CHILD_SENTINELS.some((sentinel) => options.env[sentinel] === "1")) return undefined
     // agent_settled carries no session fields, so the session is read from the event context the
     // same way the before_agent_start handler reads it.
     const session = readSession(eventCtx)
     if (session === undefined) return undefined
-    return await collectFrom(session)
+    return await collectFrom(session, extraTexts)
   }
 
   /** The ctx-free remainder of collection: everything below runs off plain captured values. */
-  async function collectFrom(session: RecallSession): Promise<CollectedRecallCandidates | undefined> {
+  async function collectFrom(session: RecallSession, extraTexts: readonly string[] = []): Promise<CollectedRecallCandidates | undefined> {
     if (CHILD_SENTINELS.some((sentinel) => options.env[sentinel] === "1")) return undefined
     const context = options.resolveContext(session.id)
     if (context === undefined) return undefined
@@ -150,7 +156,7 @@ export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): Me
 
     // USER-role texts only: candidates are keyed on user intent, and assistant prose (which often
     // paraphrases memory back at the user) would skew matching.
-    const texts = userTexts(session.entries)
+    const texts = [...userTexts(session.entries), ...extraTexts]
     if (texts.length === 0) return undefined
     const queries = planRecallQueries(texts)
     if (queries.length === 0) return undefined
@@ -180,9 +186,9 @@ export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): Me
     register(pi): void {
       drain.register(pi)
     },
-    async collectCandidates(eventCtx): Promise<CollectedRecallCandidates | undefined> {
+    async collectCandidates(eventCtx, extraTexts = []): Promise<CollectedRecallCandidates | undefined> {
       try {
-        return await collect(eventCtx)
+        return await collect(eventCtx, extraTexts)
       } catch (error) {
         // Read-only advice: any failure drops the collection and leaves the turn untouched.
         options.logger?.warn("omo-senpi memory recall candidate collection skipped", { error: describe(error) })
@@ -198,9 +204,9 @@ export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): Me
         return undefined
       }
     },
-    async collectCandidatesFromSnapshot(snapshot): Promise<CollectedRecallCandidates | undefined> {
+    async collectCandidatesFromSnapshot(snapshot, extraTexts = []): Promise<CollectedRecallCandidates | undefined> {
       try {
-        return await collectFrom(snapshot)
+        return await collectFrom(snapshot, extraTexts)
       } catch (error) {
         options.logger?.warn("omo-senpi memory recall candidate collection skipped", { error: describe(error) })
         return undefined
