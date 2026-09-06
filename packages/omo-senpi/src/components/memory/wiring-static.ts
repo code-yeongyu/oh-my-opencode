@@ -81,6 +81,7 @@ export function registerMemoryStatic(input: {
     nudgeWiring.register(pi)
     noticeWiring.register(pi)
     memorianGateWiring.attachEntrySink((customType, data) => pi.appendEntry(customType, data))
+    input.memorian.registerHooks(pi)
   }
   const promptHandler = createPromptHandler({
     resolveContext,
@@ -125,7 +126,6 @@ export function registerMemoryStatic(input: {
     await onSettled?.(sessionId, eventCtx)
     return result
   })
-  if (hasMemoryCapabilities(pi)) input.memorian.registerHooks(pi)
   registerMemoryWriteListener(pi, options, onMemoryWrite)
   registerMemoryToolSurface(pi, () => (activeSession.current === undefined ? undefined : resolveContext(activeSession.current)), {
     onCommit: (commit) => {

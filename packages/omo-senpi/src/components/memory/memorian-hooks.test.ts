@@ -80,11 +80,13 @@ describe("registerMemorianHooks", () => {
       resolveContext: () => undefined,
       resolveSessionId: () => undefined,
     })
+
     await pi.dispatch("agent_settled", {}, context("text-only", [
       { type: "message", message: { role: "user", content: "hello" } },
       { type: "message", message: { role: "assistant", content: "hi" } },
     ]))
     await pi.dispatch("agent_settled", {}, context("empty"))
+
     expect(settled).toHaveLength(1)
   })
 
