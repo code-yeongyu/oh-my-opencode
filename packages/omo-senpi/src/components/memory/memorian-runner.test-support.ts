@@ -5,7 +5,6 @@ import { join } from "node:path"
 
 import type { CreateAgentSessionOptions } from "@code-yeongyu/senpi"
 import {
-  PendingNudges,
   buildIdentityPaths,
   type MemoryIdentityPaths,
   type RecallCandidate,
