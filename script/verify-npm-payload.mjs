@@ -3,6 +3,8 @@
 import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 
+import { findMissingPayloadPaths, requiredCodexInstallPaths } from "./npm-payload-required-paths.mjs"
+
 const FORBIDDEN_RULES = [
   { name: "nested node_modules", matches: (path) => path.includes("node_modules/") },
   { name: "senpi payload", matches: (path) => path.startsWith("packages/omo-senpi/") },
@@ -40,10 +42,12 @@ const offenders = paths.flatMap((path) => {
   return rule ? [`${rule.name}: ${path}`] : []
 })
 
-const packed = new Set(paths)
-const missing = requiredSharedSkillsPaths().filter((path) => !packed.has(path))
+const missing = [
+  ...findMissingPayloadPaths(paths, requiredSharedSkillsPaths()),
+  ...findMissingPayloadPaths(paths, requiredCodexInstallPaths()),
+]
 if (missing.length > 0) {
-  console.error(`npm payload is missing shared-skills export targets the plugin imports (${missing.length}):`)
+  console.error(`npm payload is missing runtime paths the Codex plugin install reads (${missing.length}):`)
   for (const line of missing) console.error(`  ${line}`)
   process.exit(1)
 }
