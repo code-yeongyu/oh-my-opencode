@@ -6,6 +6,8 @@ import { join } from "node:path"
 import { rmEfaultTolerant } from "./teardown.test-support"
 
 import { buildIdentityPaths, GitMemoryRepo, resolveMemoryIdentity } from "@oh-my-opencode/memory-core"
+import { IdleInjectionCoordinator } from "../../extension/idle-injection-coordinator"
+import { createMemoryBinding } from "./binding"
 import type { MemoryIdentityRuntime } from "./identity-runtime"
 
 import { createMemoryIdentityContext, type MemoryIdentityContext } from "./context"
@@ -23,6 +25,7 @@ import {
 } from "./status"
 import { MEMORY_NOTICE_CUSTOM_TYPE, MEMORY_PRESSURE_METADATA_TOKEN } from "./prompt"
 import { RECALL_CUSTOM_TYPE } from "./recall-wiring"
+import { NUDGED_ENTRY_TYPE } from "./memorian-notice"
 import { createMemoryWiring } from "./wiring"
 const roots: string[] = []
 
@@ -173,6 +176,65 @@ describe("memory pressure compile wiring", () => {
     expect(pressuredPrompt).toContain("Z".repeat(300))
   }, 30_000)
 })
+
+describe("memorian tool boundary wiring", () => {
+  test("#given a fake runner and idle coordinator #when tool_call then tool_result dispatches #then one steer and one nudged entry are emitted", async () => {
+    const root = realpathSync.native(await mkdtemp(join(tmpdir(), "omo-memory-tool-boundary-")))
+    roots.push(root)
+    const identity = "tool-boundary-agent"
+    const paths = buildIdentityPaths(join(root, "memory"), identity)
+    const repo = new GitMemoryRepo({ dir: paths.repo, agentId: identity })
+    await repo.init({ seedFiles: [{ relativePath: "reference/rollouts.md", content: "---\ndescription: Rollout guidance\n---\nDrain nodes before a rollout.\n" }] })
+    const context = createMemoryIdentityContext({
+      identity,
+      identityPaths: paths,
+      binding: createMemoryBinding({ identity, repoPath: paths.repo, boundAt: 1 }),
+    })
+    const sessionId = "tool-boundary-session"
+    let launch: (() => void) | undefined
+    const launched = new Promise<void>((resolve) => { launch = resolve })
+    const pi = new MemoryFakeExtensionAPI()
+    const wiring = createMemoryWiring({
+      sessions: new Map([[sessionId, { context }]]),
+      loadConfig: () => loadedMemoryConfig(memorySettings()),
+      cwd: () => root,
+      env: {},
+      createMemorianRunner: () => ({
+        launch: async () => {
+          launch?.()
+          return { status: "nudged" as const, nudges: [{ path: "reference/rollouts.md", hint: "Drain nodes first." }], runId: "run-tool-boundary" }
+        },
+        whenIdle: async () => {},
+      }),
+    })
+    const coordinator = new IdleInjectionCoordinator(() => {})
+    const eventCtx = {
+      sessionManager: {
+        getSessionId: () => sessionId,
+        getEntries: () => [{ type: "message", message: { role: "user", content: "Drain nodes before rollout." } }],
+        getBranch: () => [{ type: "message", message: { role: "user", content: "Drain nodes before rollout." } }],
+      },
+      hasPendingMessages: () => false,
+      isIdle: () => false,
+      modelRegistry: { find: () => undefined, getProviderAuth: () => undefined },
+    }
+    const ctx = componentContext()
+    wiring.registerStatic(pi, { ...ctx, idleCoordinator: coordinator })
+
+    await pi.dispatch("tool_call", { toolName: "read", input: { path: "reference/rollouts.md" } }, eventCtx)
+    await launchedPromise(launched)
+    await wiring.whenIdle()
+    await pi.dispatch("tool_result", { toolName: "read", isError: false }, eventCtx)
+
+    expect(pi.messages).toHaveLength(1)
+    expect(pi.messages[0]?.options).toEqual({ deliverAs: "steer" })
+    expect(pi.entries.filter((entry) => entry.customType === NUDGED_ENTRY_TYPE)).toHaveLength(1)
+  })
+})
+
+async function launchedPromise(signal: Promise<void>): Promise<void> {
+  await signal
+}
 
 describe("memory recall wiring", () => {
   test("#given a bound session whose memory matches the turn #when before_agent_start dispatches #then no lexical recall message is injected and the projection still lands", async () => {

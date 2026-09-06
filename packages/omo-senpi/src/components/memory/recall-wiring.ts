@@ -22,6 +22,7 @@ import {
   planRecallQueries,
   selectRecallCandidates,
   type RecallCandidate,
+  type RecallNudge,
 } from "@oh-my-opencode/memory-core"
 
 import type { ComponentLogger } from "../../extension/types"
@@ -69,6 +70,7 @@ export interface MemoryRecallWiringOptions {
   readonly corpusCache?: RecallCorpusCache
   readonly ledgerFor?: (context: MemoryIdentityContext) => RecallLedger
   readonly pendingFor?: (context: MemoryIdentityContext) => PendingNudgesPort
+  readonly drainQueued?: (sessionId: string, context: MemoryIdentityContext) => RecallNudge[]
   /**
    * The session's live compaction epoch, owned by the memorian gate wiring. A pending payload is
    * stamped with the epoch its judge ran under, so passing the live one here is what rejects a
@@ -132,6 +134,7 @@ export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): Me
     env: options.env,
     ledgerFor,
     pendingFor,
+    ...(options.drainQueued === undefined ? {} : { drainQueued: options.drainQueued }),
     ...(options.currentCompactionEpoch === undefined ? {} : { currentCompactionEpoch: options.currentCompactionEpoch }),
     ...(options.logger === undefined ? {} : { logger: options.logger }),
   })

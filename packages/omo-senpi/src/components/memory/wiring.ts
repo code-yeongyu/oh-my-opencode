@@ -10,8 +10,8 @@ import { createShutdownDrain, type ShutdownDrainInput, type ShutdownEvaluator } 
 import { type SkillsUsageTracker } from "./skills-usage"
 import { type MemoryUsageTracker } from "./memory-usage"
 import { createMemoryNoticeWiring } from "./memory-notice-wiring"
-import { createMemorianGateWiring, type MemorianGateWiring } from "./memorian-wiring"
-import { resolveMemoryModelRegistry } from "./model-registry-resolver"
+import type { MemorianGateWiring } from "./memorian-wiring"
+import { createMemorianComposition, type MemorianComposition } from "./wiring-memorian"
 import { createMemoryRecallWiring } from "./recall-wiring"
 import { branchEntryCount } from "./wiring-context"
 import {
@@ -67,27 +67,19 @@ export function createMemoryWiring(options: MemoryWiringOptions): MemoryWiring {
   // gate's epoch to reject a superseded payload, and the gate needs recall's collection to launch.
   // The gate wiring is constructed immediately below, so every call through this ref lands after it.
   const gateWiringRef: { current?: MemorianGateWiring } = {}
+  const deliveryRef: { current?: MemorianComposition["delivery"] } = {}
 
   const recallWiring = createMemoryRecallWiring({
     resolveContext,
     resolveSettings: () => resolveMemorySettings(options.loadConfig({ cwd: options.cwd() }).config.memory),
     env: options.env,
     currentCompactionEpoch: (sessionId) => gateWiringRef.current?.currentCompactionEpoch(sessionId) ?? 0,
+    drainQueued: (sessionId, context) => deliveryRef.current?.drainForPrompt(sessionId, context) ?? [],
     ...(options.logger === undefined ? {} : { logger: options.logger }),
   })
   // The settle half of the recall channel: collection feeds the gate child, and the gate's pending
   // nudges are what recallWiring's before_agent_start handler injects on the NEXT turn.
-  const memorianGateWiring = createMemorianGateWiring({
-    // The gate launch is fire-and-forget, so every ctx read must happen synchronously inside the
-    // settle handler: the host disposes the ctx the moment that handler returns.
-    snapshotSession: (eventCtx) => recallWiring.snapshotSession(eventCtx),
-    collectCandidatesFromSnapshot: (snapshot) => recallWiring.collectCandidatesFromSnapshot(snapshot),
-    resolveModelRegistry: (eventCtx) => resolveMemoryModelRegistry(eventCtx),
-    resolveContext,
-    runnerFor: memorianRunnerFor,
-    ...(options.logger === undefined ? {} : { logger: options.logger }),
-  })
-  gateWiringRef.current = memorianGateWiring
+  const memorianRef: { current?: MemorianComposition } = {}
 
   async function flushSkillsUsageTrackers(signal?: AbortSignal): Promise<void> {
     for (const tracker of skillsUsageTrackersRef.current.values()) {
@@ -139,6 +131,10 @@ export function createMemoryWiring(options: MemoryWiringOptions): MemoryWiring {
   return {
     registerStatic(pi: SenpiExtensionAPI, ctx: ComponentContext): void {
       reflectionLive.registerRpc(pi, resolveContext)
+      const memorian = createMemorianComposition(options, pi, runtimeWiring, recallWiring, ctx, options.logger)
+      memorianRef.current = memorian
+      gateWiringRef.current = memorian.gate
+      deliveryRef.current = memorian.delivery
       registerMemoryStatic({
         pi,
         ctx,
@@ -147,7 +143,8 @@ export function createMemoryWiring(options: MemoryWiringOptions): MemoryWiring {
         nudgeWiring,
         noticeWiring,
         recallWiring,
-        memorianGateWiring,
+        memorianGateWiring: memorian.gate,
+        memorian,
         dreamTriggerWiring,
         completionApi: createReflectionCompletionApi,
         resolveContext,
@@ -202,7 +199,8 @@ export function createMemoryWiring(options: MemoryWiringOptions): MemoryWiring {
 
     async onSessionShutdown(input: ShutdownDrainInput): Promise<void> {
       reflectionLive.shutdown(options.sessions.get(input.sessionId)?.context?.identity)
-      await memorianGateWiring.onSessionShutdown(input.sessionId)
+      await memorianRef.current?.onSessionShutdown(input.sessionId)
+      await memorianRef.current?.gate.onSessionShutdown(input.sessionId)
       const identity = resolveContext(input.sessionId)
       if (identity !== undefined) await factsWiringFor(identity).cancelActive?.()
       await shutdownDrain.run(input)
@@ -215,6 +213,12 @@ export function createMemoryWiring(options: MemoryWiringOptions): MemoryWiring {
     clearStatus(eventCtx: unknown): void {
       reflectionLive.clearStatus(eventCtx)
     },
+
+    async whenIdle(): Promise<void> {
+      await memorianRef.current?.trigger.whenIdle()
+    },
+
+
   }
 }
 
