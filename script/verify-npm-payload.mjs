@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 
 import { findMissingPayloadPaths, requiredCodexInstallPaths } from "./npm-payload-required-paths.mjs"
+import { parseNpmPackPaths } from "./npm-pack-paths.mjs"
 
 const FORBIDDEN_RULES = [
   { name: "nested node_modules", matches: (path) => path.includes("node_modules/") },
@@ -32,8 +33,7 @@ function packedPaths() {
     maxBuffer: 64 * 1024 * 1024,
     stdio: ["ignore", "pipe", "inherit"],
   })
-  const [result] = JSON.parse(raw)
-  return result.files.map((file) => file.path)
+  return parseNpmPackPaths(raw)
 }
 
 const paths = packedPaths()
