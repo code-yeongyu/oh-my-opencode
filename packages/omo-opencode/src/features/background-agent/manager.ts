@@ -1634,6 +1634,7 @@ The fallback retry session is now created and can be inspected directly.
       const sessionID = resolveMessageEventSessionID(props)
       const role = info.role
       if (!sessionID) return
+      this.terminalChildErrors.delete(sessionID)
       if (isEmptyNoProgressAssistantTurnInfo(info)) {
         const dispatchedWake = this.parentWakeNotifier.getDispatchedParentWakes().get(sessionID)
         if (dispatchedWake) {

@@ -6100,6 +6100,35 @@ describe("BackgroundManager.handleEvent - session.error", () => {
     }
   })
 
+  test("clears a recorded terminal error once the session produces output again", () => {
+    //#given
+    const manager = createBackgroundManager()
+
+    try {
+      manager.handleEvent({
+        type: "session.error",
+        properties: {
+          sessionID: "ses_recovered",
+          error: { name: "ProviderModelNotFoundError", message: "Model not found: opencode/gpt-5-nano" },
+        },
+      })
+      expect(manager.getTerminalChildError?.("ses_recovered")).toBe("Model not found: opencode/gpt-5-nano")
+
+      //#when
+      manager.handleEvent({
+        type: "message.updated",
+        properties: {
+          info: { id: "msg_recovered", sessionID: "ses_recovered", role: "assistant" },
+        },
+      })
+
+      //#then
+      expect(manager.getTerminalChildError?.("ses_recovered")).toBeNull()
+    } finally {
+      manager.shutdown()
+    }
+  })
+
   test("does not terminate task on session.error when session is still alive", async () => {
     //#given
     const manager = createBackgroundManagerWithOptions({
