@@ -25,6 +25,7 @@ export interface RecallDrainOptions {
   readonly env: Record<string, string | undefined>
   readonly ledgerFor: (context: MemoryIdentityContext) => RecallLedger
   readonly pendingFor: (context: MemoryIdentityContext) => PendingNudgesPort
+  readonly drainQueued?: (sessionId: string, context: MemoryIdentityContext) => RecallNudge[]
   /**
    * The session's live compaction epoch, owned by the memorian gate wiring. A pending payload is
    * stamped with the epoch its judge ran under, so passing the live one here is what rejects a
@@ -62,9 +63,21 @@ export function createRecallDrain(options: RecallDrainOptions): RecallDrain {
     if (context === undefined) return undefined
     if (resolveAgentRecallSettings(options.resolveSettings(), context.identity).enabled === false) return undefined
 
-    const nudges = await options.pendingFor(context).take(session.id, {
-      currentEpoch: options.currentCompactionEpoch?.(session.id) ?? 0,
-    })
+    let fromFile: RecallNudge[] = []
+    try {
+      fromFile = await options.pendingFor(context).take(session.id, {
+        currentEpoch: options.currentCompactionEpoch?.(session.id) ?? 0,
+      })
+    } catch (error) {
+      options.logger?.warn("omo-senpi memory recall pending take skipped", { sessionId: session.id, error: describe(error) })
+    }
+    let fromQueue: RecallNudge[] = []
+    try {
+      fromQueue = options.drainQueued?.(session.id, context) ?? []
+    } catch (error) {
+      options.logger?.warn("omo-senpi memory recall queued drain skipped", { sessionId: session.id, error: describe(error) })
+    }
+    const nudges = dedupeByPath([...fromQueue, ...fromFile])
     if (nudges.length === 0) return undefined
 
     // Composed BEFORE any bookkeeping: marking is advisory, so its failure must never consume or
@@ -111,6 +124,7 @@ export function createRecallDrain(options: RecallDrainOptions): RecallDrain {
             pi.appendEntry(NUDGED_ENTRY_TYPE, {
               version: 1,
               nudges: injection.nudges.map(({ path, hint }) => ({ path, hint })),
+              via: "prompt",
             } satisfies MemorianNudgedRecord)
           } catch (error) {
             // Fail-open: the visible trace is bookkeeping - its failure must never suppress a
@@ -150,6 +164,15 @@ function resolveAgentRecallSettings(
 ): { readonly enabled: boolean } {
   const resolved = resolveMemorySettings(settings)
   return { ...resolved.recall, ...resolved.agents[agentId]?.recall }
+}
+
+function dedupeByPath(nudges: readonly RecallNudge[]): RecallNudge[] {
+  const seen = new Set<string>()
+  return nudges.filter((nudge) => {
+    if (seen.has(nudge.path)) return false
+    seen.add(nudge.path)
+    return true
+  })
 }
 
 function describe(error: unknown): string {
