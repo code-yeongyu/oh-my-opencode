@@ -1,32 +1,30 @@
 import { existsSync } from "node:fs"
+import { win32 } from "node:path"
 
-/**
- * Resolve a Windows System32 tool by absolute path
- * Defaults to `%SystemRoot%\System32\<toolRelativePath>` or `C:\Windows\System32\<toolRelativePath>`
- */
+/** Resolve only existing tools under absolute Windows installation roots, never PATH. */
 export function resolveWindowsSystemTool(
 	toolRelativePath: string,
 	systemRoot: string | undefined = process.env["SystemRoot"],
-): string {
-	const root = systemRoot === undefined || systemRoot === "" ? "C:\\Windows" : systemRoot
-	return `${root}\\System32\\${toolRelativePath}`
+	exists: (path: string) => boolean = existsSync,
+	windir: string | undefined = process.env["WINDIR"],
+): string | undefined {
+	for (const root of [systemRoot, windir]) {
+		// A single leading slash is drive-relative on Windows, not a full root.
+		if (!root || !win32.isAbsolute(root) || win32.parse(root).root.length <= 1) continue
+		const path = win32.join(root, "System32", toolRelativePath)
+		if (exists(path)) return path
+	}
+	return undefined
 }
 
-/**
- * Fail-closed variant: validates the resolved path exists before handing it to
- * a spawn call. A missing/empty SystemRoot falls back to C:\Windows (matching
- * resolveWindowsSystemTool); a root that points nowhere yields a nonfatal miss
- * carrying the attempted path so callers can degrade instead of throwing
- * ENOENT from an unhandled spawn error event (issue #6738).
- *
- * Accepts an optional existsSync injectable for portable unit tests (e.g. Linux CI).
- */
 export function resolveWindowsSystemToolExistent(
 	toolRelativePath: string,
 	systemRoot: string | undefined = process.env["SystemRoot"],
-	exists: (p: string) => boolean = existsSync,
-): { found: true; path: string } | { found: false; path: string } {
-	const path = resolveWindowsSystemTool(toolRelativePath, systemRoot)
-	return exists(path) ? { found: true, path } : { found: false, path }
+	exists: (path: string) => boolean = existsSync,
+	windir: string | undefined = process.env["WINDIR"],
+): { found: true; path: string } | { found: false; error: string } {
+	const path = resolveWindowsSystemTool(toolRelativePath, systemRoot, exists, windir)
+	return path === undefined
+		? { found: false, error: `Windows system tool ${toolRelativePath} was not found under an absolute SystemRoot or WINDIR` }
+		: { found: true, path }
 }
-

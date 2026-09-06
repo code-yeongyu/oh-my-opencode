@@ -1,33 +1,59 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it, mock } from "bun:test"
 
 import { resolveWindowsSystemToolExistent } from "./system-tool-paths"
 
 describe("resolveWindowsSystemToolExistent", () => {
-	it("#given a valid tool under a custom SystemRoot #when resolving #then the absolute path is returned as found", () => {
-		// Uses mock exists checker so the test passes identically on Linux CI and Windows
-		const mockExists = (p: string) => p === "C:\\Windows\\System32\\cmd.exe"
-		const result = resolveWindowsSystemToolExistent("cmd.exe", "C:\\Windows", mockExists)
-		expect(result).toEqual({ found: true, path: "C:\\Windows\\System32\\cmd.exe" })
-	})
+  it("#given an existing executable #when resolving #then the absolute path is found", () => {
+    const path = "D:\\Windows\\System32\\taskkill.exe"
+    const exists = mock((candidate: string) => candidate === path)
+    expect(resolveWindowsSystemToolExistent("taskkill.exe", "D:\\Windows", exists, "")).toEqual({ found: true, path })
+    expect(exists.mock.calls).toEqual([[path]])
+  })
 
-	it("#given a malformed SystemRoot pointing to a nonexistent directory #when resolving #then a nonfatal miss is returned with the attempted path", () => {
-		const mockExists = (_p: string) => false
-		const result = resolveWindowsSystemToolExistent("taskkill.exe", "C:\\Nonexistent\\Root", mockExists)
-		expect(result.found).toBe(false)
-		if (!result.found) {
-			expect(result.path).toBe("C:\\Nonexistent\\Root\\System32\\taskkill.exe")
-		}
-	})
+  for (const root of ["relative", ".\\Windows", "C:Windows", "\\Windows", "/Windows", "\\\\server"]) {
+    it(`#given a relative root ${root} #when resolving #then it is rejected before any existence check`, () => {
+      const exists = mock(() => true)
+      const result = resolveWindowsSystemToolExistent("taskkill.exe", root, exists, "")
+      expect(result).toEqual({ found: false, error: expect.any(String) })
+      expect(exists).not.toHaveBeenCalled()
+      expect("path" in result).toBe(false)
+    })
+  }
 
-	it("#given an empty SystemRoot string #when resolving #then the C:\\Windows fallback is attempted", () => {
-		const mockExists = (p: string) => p === "C:\\Windows\\System32\\taskkill.exe"
-		const result = resolveWindowsSystemToolExistent("taskkill.exe", "", mockExists)
-		expect(result).toEqual({ found: true, path: "C:\\Windows\\System32\\taskkill.exe" })
-	})
+  for (const root of ["", "relative", "C:\\Missing"]) {
+    it(`#given an unusable SystemRoot ${root} #when WINDIR has the executable #then WINDIR is used`, () => {
+      const path = "D:\\Windows\\System32\\taskkill.exe"
+      expect(resolveWindowsSystemToolExistent("taskkill.exe", root, candidate => candidate === path, "D:\\Windows")).toEqual({ found: true, path })
+    })
+  }
 
-	it("#given no explicit root and an ambient SystemRoot absent from env #when resolving #then the C:\\Windows fallback is attempted", () => {
-		const mockExists = (p: string) => p === "C:\\Windows\\System32\\where.exe"
-		const result = resolveWindowsSystemToolExistent("where.exe", undefined, mockExists)
-		expect(result).toEqual({ found: true, path: "C:\\Windows\\System32\\where.exe" })
-	})
+  it("#given both candidates exist #when resolving #then SystemRoot takes precedence", () => {
+    const exists = mock(() => true)
+    expect(resolveWindowsSystemToolExistent("taskkill.exe", "D:\\Windows", exists, "E:\\Windows")).toEqual({
+      found: true, path: "D:\\Windows\\System32\\taskkill.exe",
+    })
+    expect(exists).toHaveBeenCalledTimes(1)
+  })
+
+  it("#given both executables are missing #when resolving #then both absolute candidates are checked and a nonfatal error is returned", () => {
+    const exists = mock(() => false)
+    const result = resolveWindowsSystemToolExistent("taskkill.exe", "D:\\Windows", exists, "E:\\Windows")
+    expect(result).toEqual({ found: false, error: expect.any(String) })
+    expect(exists.mock.calls).toEqual([
+      ["D:\\Windows\\System32\\taskkill.exe"],
+      ["E:\\Windows\\System32\\taskkill.exe"],
+    ])
+  })
+
+  it("#given no installation candidates #when resolving #then there is no blind C drive fallback", () => {
+    const exists = mock(() => true)
+    expect(resolveWindowsSystemToolExistent("taskkill.exe", "", exists, "")).toEqual({ found: false, error: expect.any(String) })
+    expect(exists).not.toHaveBeenCalled()
+  })
+
+  it("#given relative WINDIR #when resolving #then it cannot rescue a missing SystemRoot", () => {
+    const exists = mock(() => true)
+    expect(resolveWindowsSystemToolExistent("taskkill.exe", "", exists, "C:Windows")).toEqual({ found: false, error: expect.any(String) })
+    expect(exists).not.toHaveBeenCalled()
+  })
 })
