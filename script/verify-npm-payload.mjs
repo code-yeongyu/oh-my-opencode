@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 
 import { findMissingPayloadPaths, requiredCodexInstallPaths } from "./npm-payload-required-paths.mjs"
+import { npmSpawnOptions } from "./npm-invocation.mjs"
 import { parseNpmPackPaths } from "./npm-pack-paths.mjs"
 
 const FORBIDDEN_RULES = [
@@ -32,6 +33,7 @@ function packedPaths() {
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,
     stdio: ["ignore", "pipe", "inherit"],
+    ...npmSpawnOptions(),
   })
   return parseNpmPackPaths(raw)
 }
