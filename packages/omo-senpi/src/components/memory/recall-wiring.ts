@@ -20,19 +20,31 @@ import {
   RecallCorpusCache,
   RecallLedger,
   planRecallQueries,
-  renderNudgeBlock,
   selectRecallCandidates,
   type RecallCandidate,
-  type RecallNudge,
 } from "@oh-my-opencode/memory-core"
 
 import type { ComponentLogger } from "../../extension/types"
 import type { MemoryExtensionAPI } from "./capabilities"
 import type { MemoryIdentityContext } from "./context"
-import { MEMORY_NOTICE_CUSTOM_TYPE } from "./prompt"
-import { GATE_ENTRY_TYPE, NUDGED_ENTRY_TYPE, renderMemorianGateEntry, renderMemorianNudgedEntry, type MemorianNudgedRecord } from "./memorian-notice"
-import { renderRecallEntry } from "./recall-notice"
 import { resolveMemorySettings } from "./identity-runtime"
+import { createRecallDrain, type PendingNudgesPort } from "./recall-drain"
+import {
+  judgeTranscript,
+  readSession,
+  userTexts,
+  type RecallSession,
+  type RecallSessionSnapshot,
+  type RecallTranscriptTurn,
+} from "./recall-session-read"
+
+export {
+  RECALL_CUSTOM_TYPE,
+  type RecallSession,
+  type RecallSessionSnapshot,
+  type RecallTranscriptTurn,
+} from "./recall-session-read"
+export type { PendingNudgesPort }
 
 export interface ResolvedMemoryRecallSettings {
   readonly enabled: boolean
@@ -47,15 +59,6 @@ export function resolveAgentRecallSettings(
   const resolved = resolveMemorySettings(settings)
   return { ...resolved.recall, ...resolved.agents[agentId]?.recall }
 }
-
-export const RECALL_CUSTOM_TYPE = "omo-memorian:recall"
-
-/** Newest conversation texts feeding the query planner; older turns are not what the user is on. */
-const RECALL_TEXT_WINDOW = 6
-
-// Memory-owned hidden channels. Their content is derived FROM memory, so feeding them back into
-// the query planner would make recall search for the hint it just injected.
-const EXCLUDED_CUSTOM_TYPES: ReadonlySet<string> = new Set([RECALL_CUSTOM_TYPE, MEMORY_NOTICE_CUSTOM_TYPE])
 
 export interface MemoryRecallWiringOptions {
   readonly resolveContext: (sessionId: string) => MemoryIdentityContext | undefined
@@ -76,17 +79,6 @@ export interface MemoryRecallWiringOptions {
   readonly logger?: ComponentLogger
 }
 
-/** The pending handoff the gate writes and this turn drains; `take` is read-and-delete. */
-export interface PendingNudgesPort {
-  take(sessionId: string, options: { readonly currentEpoch: number }): Promise<RecallNudge[]>
-}
-
-/** One line of the judge's transcript window: both roles, oldest first. */
-export interface RecallTranscriptTurn {
-  readonly role: "user" | "assistant"
-  readonly text: string
-}
-
 /** Everything the memorian gate child needs about one settled turn's lexical candidates. */
 export interface CollectedRecallCandidates {
   readonly sessionId: string
@@ -102,16 +94,6 @@ export interface CollectedRecallCandidates {
    * turn has covered.
    */
   readonly transcript: readonly RecallTranscriptTurn[]
-}
-
-/**
- * The ctx-derived half of a settle, read synchronously while the ctx is still alive. The memorian
- * gate detaches its launch, and the host disposes the ctx as soon as the settle handler returns, so
- * the gate captures this first and the async work consumes only these plain values.
- */
-export interface RecallSessionSnapshot {
-  readonly id: string
-  readonly entries: readonly unknown[]
 }
 
 export interface MemoryRecallWiring {
@@ -133,17 +115,20 @@ export interface MemoryRecallWiring {
 // or consume the hints produced by the memorian gate.
 const CHILD_SENTINELS = ["SENPI_MEMORY_REFLECTION", "SENPI_MEMORY_FACTS"] as const
 
-/**
- * Provenance recorded next to a surfaced path. The ledger keys on the path alone - the hash exists
- * so a reader can tell a gate-delivered hint from a lexically matched one.
- */
-const GATE_SURFACE_HASH = "memorian-gate"
-
 export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): MemoryRecallWiring {
   const corpusCache = options.corpusCache ?? new RecallCorpusCache()
   const createRepo = options.createRepo ?? defaultCreateRepo
   const ledgerFor = options.ledgerFor ?? ((context) => new RecallLedger(context.identityPaths.recallLedger))
   const pendingFor = options.pendingFor ?? ((context) => new PendingNudges(context.identityPaths.recallPending))
+  const drain = createRecallDrain({
+    resolveContext: options.resolveContext,
+    resolveSettings: options.resolveSettings,
+    env: options.env,
+    ledgerFor,
+    pendingFor,
+    ...(options.currentCompactionEpoch === undefined ? {} : { currentCompactionEpoch: options.currentCompactionEpoch }),
+    ...(options.logger === undefined ? {} : { logger: options.logger }),
+  })
 
   async function collect(eventCtx: unknown): Promise<CollectedRecallCandidates | undefined> {
     if (CHILD_SENTINELS.some((sentinel) => options.env[sentinel] === "1")) return undefined
@@ -191,78 +176,9 @@ export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): Me
     }
   }
 
-  /** Drain the gate's pending nudges for this turn. Returns undefined when there is nothing to say. */
-  async function inject(payload: unknown, eventCtx: unknown): Promise<RecallInjection | undefined> {
-    if (!isBeforeAgentStart(payload)) return undefined
-    if (CHILD_SENTINELS.some((sentinel) => options.env[sentinel] === "1")) return undefined
-    const session = readSession(eventCtx)
-    if (session === undefined) return undefined
-    const context = options.resolveContext(session.id)
-    if (context === undefined) return undefined
-    if (resolveAgentRecallSettings(options.resolveSettings(), context.identity).enabled === false) return undefined
-
-    const nudges = await pendingFor(context).take(session.id, {
-      currentEpoch: options.currentCompactionEpoch?.(session.id) ?? 0,
-    })
-    if (nudges.length === 0) return undefined
-
-    // Composed BEFORE any bookkeeping: marking is advisory, so its failure must never consume or
-    // suppress a nudge the judge already paid for.
-    const injection: RecallInjection = {
-      result: {
-        message: {
-          customType: RECALL_CUSTOM_TYPE,
-          content: nudges.map(renderNudgeBlock).join("\n"),
-          display: false,
-        },
-      },
-      paths: nudges.map((nudge) => nudge.path),
-      nudges,
-    }
-
-    try {
-      await ledgerFor(context).markSurfaced(
-        session.id,
-        nudges.map((nudge) => ({ path: nudge.path, hash: GATE_SURFACE_HASH })),
-      )
-    } catch (error) {
-      // Fail-open: an unrecorded path simply stays eligible for a later gate run.
-      options.logger?.warn("omo-senpi memory recall ledger mark skipped", {
-        sessionId: session.id,
-        error: describe(error),
-      })
-    }
-    return injection
-  }
-
   return {
     register(pi): void {
-      pi.registerEntryRenderer(RECALL_CUSTOM_TYPE, renderRecallEntry)
-      pi.registerEntryRenderer(NUDGED_ENTRY_TYPE, renderMemorianNudgedEntry)
-      pi.registerEntryRenderer(GATE_ENTRY_TYPE, renderMemorianGateEntry)
-      pi.on("before_agent_start", async (payload, eventCtx) => {
-        try {
-          const injection = await inject(payload, eventCtx)
-          if (injection === undefined) return undefined
-          try {
-            // Visible half: the model-facing message is display:false, so without this entry the
-            // user would see a memory-shaped answer with no trace of where it came from.
-            pi.appendEntry(NUDGED_ENTRY_TYPE, {
-              version: 1,
-              nudges: injection.nudges.map(({ path, hint }) => ({ path, hint })),
-            } satisfies MemorianNudgedRecord)
-          } catch (error) {
-            // Fail-open: the visible trace is bookkeeping - its failure must never suppress a
-            // nudge the ledger already recorded as delivered.
-            options.logger?.warn("omo-senpi memory recall trace entry skipped", { error: describe(error) })
-          }
-          return injection.result
-        } catch (error) {
-          // Read-only advice: any failure skips the injection and leaves the turn untouched.
-          options.logger?.warn("omo-senpi memory recall skipped", { error: describe(error) })
-          return undefined
-        }
-      })
+      drain.register(pi)
     },
     async collectCandidates(eventCtx): Promise<CollectedRecallCandidates | undefined> {
       try {
@@ -293,110 +209,10 @@ export function createMemoryRecallWiring(options: MemoryRecallWiringOptions): Me
   }
 }
 
-interface RecallInjection {
-  readonly result: {
-    readonly message: {
-      readonly customType: typeof RECALL_CUSTOM_TYPE
-      readonly content: string
-      readonly display: false
-    }
-  }
-  readonly paths: readonly string[]
-  readonly nudges: readonly RecallNudge[]
-}
-
-interface RecallSession {
-  readonly id: string
-  readonly entries: readonly unknown[]
-}
-
-function isBeforeAgentStart(payload: unknown): boolean {
-  return isRecord(payload) && payload.type === "before_agent_start"
-}
-
-/**
- * The judge's window, oldest first: both roles, memory-owned hidden channels excluded for the same
- * reason the planner excludes them - a previous hint is not conversation.
- */
-function judgeTranscript(entries: readonly unknown[]): RecallTranscriptTurn[] {
-  const turns: RecallTranscriptTurn[] = []
-  for (let index = entries.length - 1; index >= 0 && turns.length < RECALL_TEXT_WINDOW; index -= 1) {
-    const turn = judgeTurn(entries[index])
-    if (turn !== undefined) turns.push(turn)
-  }
-  return turns.reverse()
-}
-
-function judgeTurn(entry: unknown): RecallTranscriptTurn | undefined {
-  if (!isRecord(entry)) return undefined
-  if (entry.type !== "message") return undefined
-  const message = entry.message
-  if (!isRecord(message)) return undefined
-  if (message.role !== "user" && message.role !== "assistant") return undefined
-  if (typeof message.customType === "string" && EXCLUDED_CUSTOM_TYPES.has(message.customType)) return undefined
-  const text = textOf(message.content)
-  if (text.trim().length === 0) return undefined
-  return { role: message.role, text }
-}
-
-function readSession(eventCtx: unknown): RecallSession | undefined {
-  if (!isRecord(eventCtx)) return undefined
-  const manager = eventCtx.sessionManager
-  if (!isRecord(manager)) return undefined
-  const getSessionId = manager.getSessionId
-  const getBranch = manager.getBranch
-  if (typeof getSessionId !== "function" || typeof getBranch !== "function") return undefined
-  const id = Reflect.apply(getSessionId, manager, [])
-  const entries = Reflect.apply(getBranch, manager, [])
-  if (typeof id !== "string" || id.length === 0 || !Array.isArray(entries)) return undefined
-  return { id, entries }
-}
-
-/**
- * Newest-first USER texts for the planner. Memory-owned hidden custom messages are skipped: senpi
- * persists an injected recall block as a `custom_message` branch entry, so an unfiltered window
- * would rediscover the previous hint instead of the live conversation.
- */
-function userTexts(entries: readonly unknown[]): string[] {
-  const texts: string[] = []
-  for (let index = entries.length - 1; index >= 0 && texts.length < RECALL_TEXT_WINDOW; index -= 1) {
-    const text = userText(entries[index])
-    if (text !== undefined) texts.push(text)
-  }
-  return texts
-}
-
-function userText(entry: unknown): string | undefined {
-  if (!isRecord(entry)) return undefined
-  if (entry.type === "custom_message" || entry.type === "custom") return undefined
-  if (entry.type !== "message") return undefined
-  const message = entry.message
-  if (!isRecord(message)) return undefined
-  if (message.role !== "user") return undefined
-  if (typeof message.customType === "string" && EXCLUDED_CUSTOM_TYPES.has(message.customType)) return undefined
-  const text = textOf(message.content)
-  return text.trim().length === 0 ? undefined : text
-}
-
-function textOf(content: unknown): string {
-  if (typeof content === "string") return content
-  if (!Array.isArray(content)) return ""
-  const parts: string[] = []
-  for (const block of content) {
-    if (!isRecord(block) || block.type !== "text") continue
-    if (typeof block.text === "string") parts.push(block.text)
-  }
-  return parts.join("\n")
-}
-
 function defaultCreateRepo(context: MemoryIdentityContext): GitMemoryRepo {
   return new GitMemoryRepo({ dir: context.identityPaths.repo, agentId: context.identity })
 }
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
 }
