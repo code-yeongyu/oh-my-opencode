@@ -7,6 +7,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { findRepoRoot, findRepoRootFromImporter, resolveCodexInstallerBinDir, runCodexInstaller } from "./install-codex"
 import { createRepoWithBuiltComponentBins } from "./install-codex-test-fixtures"
+import { findMissingSpawnedScripts } from "./spawned-script-targets"
 import { createLegacyCodexHome, liveLegacyEndpointFor, startLegacyDaemonProcess, stopChild, waitForChildReady, writeLegacyVersionState } from "./lsp-daemon-reaper.test-support"
 
 const INSTALL_CODEX_INTEGRATION_TEST_TIMEOUT_MS = process.platform === "win32" ? 120_000 : 20_000
@@ -229,15 +230,7 @@ describe("install-codex", () => {
     })
 
     // then
-    const spawnedScripts = invocations
-      .filter((invocation) => invocation.command === process.execPath)
-      .map((invocation) => invocation.args[0] ?? "")
-      .filter((argument) => argument.endsWith(".mjs") || argument.endsWith(".js"))
-    const missingScripts: string[] = []
-    for (const scriptPath of spawnedScripts) {
-      const exists = await stat(scriptPath).then(() => true, () => false)
-      if (!exists) missingScripts.push(scriptPath)
-    }
+    const missingScripts = await findMissingSpawnedScripts({ invocations, repoRoot })
     expect(missingScripts).toEqual([])
   }, { timeout: INSTALL_CODEX_INTEGRATION_TEST_TIMEOUT_MS })
 
