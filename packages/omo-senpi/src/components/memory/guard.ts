@@ -158,6 +158,7 @@ function isForbiddenTarget(rawPath: string, cwd: string, roots: GuardRoots, recu
   for (const candidate of candidates) {
     if (ownRoots.some((root) => isWithin(root, candidate))) continue
     if (agentsRoots.some((root) => isWithin(root, candidate))) return true
+    if (recursive && agentsRoots.some((root) => isWithin(candidate, root))) return true
   }
   return false
 }

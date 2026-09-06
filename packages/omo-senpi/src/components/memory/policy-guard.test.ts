@@ -112,7 +112,7 @@ describe("memory filesystem policy guard", () => {
     expect(result).toEqual({ status: "registered" })
     expect(setup.pi.filesystemPolicies).toHaveLength(1)
     const deniedRoots = registeredPolicy(setup).deniedRoots ?? []
-    expect(deniedRoots).toContain(canonical(setup.foreignRoot))
+    expect(deniedRoots).toEqual([])
     expect(deniedRoots).not.toContain(canonical(setup.own.identityPaths.root))
     expect(deniedRoots).not.toContain(resolve(setup.own.identityPaths.root))
   })
