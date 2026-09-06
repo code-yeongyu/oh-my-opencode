@@ -2,7 +2,7 @@
 
 ## What was tested
 
-["/Users/sangwon/.bun/bin/bun","/Users/sangwon/Documents/feelso/oh-my-openagent-wt/fix-memory-reflection-isolation-health/packages/omo-senpi/scripts/qa/memory-reflection-isolation-e2e.mjs","--evidence-slug","20260905-reflection-isolation-live3"]
+`bun packages/omo-senpi/scripts/qa/memory-reflection-isolation-e2e.mjs --evidence-slug 20260905-reflection-isolation-live3`
 
 Real worktree-local Senpi PTY; built local OMO extension; localhost scripted model.
 
