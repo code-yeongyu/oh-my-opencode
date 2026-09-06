@@ -147,6 +147,15 @@ describe("memory cross-identity guard", () => {
     })
   })
 
+  test("#given a foreign identity file #when a non-enumeration file tool targets it #then the guard blocks it without enumerating agents root", async () => {
+    const setup = fixture()
+
+    expect(await dispatch(setup, "read", { path: setup.foreignFile })).toEqual({
+      block: true,
+      reason: `cross-identity memory access denied: read to ${setup.foreignFile} belongs to another memory identity`,
+    })
+  })
+
   test("#given the identities root and one of its ancestors #when enumeration tools target them #then cross-identity enumeration is blocked", async () => {
     const setup = fixture()
     const memoryRoot = dirname(setup.agentsRoot)
