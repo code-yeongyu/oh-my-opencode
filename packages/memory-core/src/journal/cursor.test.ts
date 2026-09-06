@@ -189,6 +189,28 @@ describe("reflection cursor", () => {
     expect((await journal.getState()).unreflected_bytes).toBe(state.unreflected_bytes)
   })
 
+  it("#given a tool-only tail after the last canonical message #when the whole backlog fits #then the tail ships in the same window", () => {
+    // given
+    const entries: TranscriptEntry[] = [
+      ...assistantEntries(1, 20),
+      ...projectTranscriptEntries(
+        { kind: "assistant", messageId: "assistant-tail", toolCalls: [{ callId: "tail-tool", name: "read", resultText: "tail" }] },
+        "2026-08-09T12:00:01.000Z",
+      ),
+    ]
+    const state = deriveState(initialReflectionState(), entries)
+
+    // when
+    const snapshot = captureCursorSnapshot(entries, state, { maxBytes: 4096 })
+
+    // then
+    if (snapshot === null) throw new Error("expected a reflection snapshot")
+    expect(snapshot.end_message_id).toBe("assistant-0")
+    expect(snapshot.end_snapshot_line).toBe(entries.length)
+    expect(snapshot.entries.at(-1)?.source_message_id).toBe("assistant-tail")
+    expect(snapshot.backlog_remaining).toBeUndefined()
+  })
+
   it("#given the default budget #when it is read #then it is 128 KiB", () => {
     expect(REFLECTION_SNAPSHOT_MAX_BYTES).toBe(131_072)
   })

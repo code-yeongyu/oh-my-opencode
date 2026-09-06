@@ -121,6 +121,7 @@ export function captureCursorSnapshot(
   let bytes = entries.slice(windowStart, startIndex).reduce((total, entry) => total + entryBytes(entry), 0)
   let endMessageId: string | undefined
   let endLine = -1
+  let budgetExhausted = false
 
   for (let index = startIndex; index < entries.length; index += 1) {
     const entry = entries[index]
@@ -138,15 +139,24 @@ export function captureCursorSnapshot(
       groupBytes += entryBytes(trailing)
     }
     // Progress guarantee: the first group always ships, even when it alone busts the budget.
-    if (groupBytes > maxBytes && endMessageId !== undefined) break
+    if (groupBytes > maxBytes && endMessageId !== undefined) {
+      budgetExhausted = true
+      break
+    }
     endMessageId = entry.source_message_id
     endLine = groupEnd + 1
     bytes = groupBytes
     index = groupEnd
-    if (groupBytes >= maxBytes) break
+    if (groupBytes >= maxBytes) {
+      budgetExhausted = true
+      break
+    }
   }
 
   if (endMessageId === undefined || endLine < 0) return null
+  // Rows after the last canonical message (a tool-only tail) belong to this window when the
+  // whole backlog fit: leaving them behind would strand them until a later canonical row arrives.
+  if (!budgetExhausted && bytes <= maxBytes) endLine = entries.length
 
   const backlogRemaining = entries.length - endLine
   return {
