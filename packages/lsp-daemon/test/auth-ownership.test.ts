@@ -269,6 +269,31 @@ describe("daemon IPC authentication and ownership", () => {
 		expect(readDaemonOwner(paths)?.nonce).not.toBe("dead");
 	});
 
+	it("given a dead owner with a missing Unix socket when candidate starts then it rotates auth and takes ownership", async () => {
+		if (process.platform === "win32") return;
+		const paths = tempPaths();
+		mkdirSync(paths.dir, { recursive: true });
+		writeFileSync(paths.auth, "old-token", { mode: 0o600 });
+		writeFileSync(
+			paths.owner,
+			JSON.stringify({
+				pid: 9_999_999,
+				nonce: "dead",
+				startedAt: "old",
+				endpoint: { kind: "unix", path: paths.socket, dev: 1, ino: 1 },
+			}),
+			{
+				mode: 0o600,
+			},
+		);
+		writeFileSync(paths.endpoint, paths.socket, { mode: 0o600 });
+		const server = await startDaemonServer(paths, { onIdleShutdown: () => {} });
+		openServers.push(server);
+
+		expect(readFileSync(paths.auth, "utf8").trim()).not.toBe("old-token");
+		expect(readDaemonOwner(paths)?.nonce).not.toBe("dead");
+	});
+
 	it("given a stale close from an old owner when a new owner exists then winner metadata survives", async () => {
 		const paths = tempPaths();
 		const first = await startDaemonServer(paths, { onIdleShutdown: () => {} });
