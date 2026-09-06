@@ -10,6 +10,7 @@ export const GATE_REASON_MAX_CHARS = 160
 export interface MemorianNudgedRecord {
   readonly version: 1
   readonly nudges: readonly { readonly path: string; readonly hint: string }[]
+  readonly via?: "steer" | "wake" | "prompt"
 }
 
 export interface MemorianGateRecord {
@@ -26,7 +27,7 @@ export interface MemorianGateRecord {
 // nothing rather than a half-formed notice. The session file is user-writable and older or
 // foreign producers may append entries under these types, so shape is re-validated here even
 // though the producer already validated it.
-export const renderMemorianNudgedEntry: EntryRenderer<MemorianNudgedRecord> = (entry, options, theme) => {
+export const renderMemorianNudgedEntry: EntryRenderer<unknown> = (entry, options, theme) => {
   const record = entry.data
   if (!isRecord(record) || record.version !== 1 || !Array.isArray(record.nudges) || record.nudges.length === 0) return undefined
   const nudges: Array<{ readonly path: string; readonly hint: string }> = []
@@ -37,6 +38,7 @@ export const renderMemorianNudgedEntry: EntryRenderer<MemorianNudgedRecord> = (e
   }
   const [first, ...rest] = nudges
   if (first === undefined) return undefined
+  const via = record.via === "steer" || record.via === "wake" || record.via === "prompt" ? record.via : undefined
   return noticeComponent({
     glyph: "·",
     title: joinFields(["Memorian nudged", first.hint]),
@@ -45,6 +47,7 @@ export const renderMemorianNudgedEntry: EntryRenderer<MemorianNudgedRecord> = (e
     extra: [
       ...rest.map((nudge) => ({ text: nudge.hint, tone: "dim" as const })),
       ...nudges.map((nudge) => ({ text: nudge.path, tone: "dim" as const })),
+      ...(via === undefined ? [] : [{ text: `via ${via}`, tone: "dim" as const }]),
     ],
   }, options, theme)
 }

@@ -558,6 +558,28 @@ jobs:
             echo "::warning::lazycodex-ai doctor dry-run output changed: $npx_doctor_output"
           fi
 
+      - uses: actions/checkout@v7
+        if: needs.ci-mode.outputs.run_heavy == 'true'
+
+      - name: Install published payloads into an isolated CODEX_HOME
+        if: needs.ci-mode.outputs.run_heavy == 'true'
+        run: |
+          set -uo pipefail
+          status=0
+          for spec in lazycodex-ai@latest lazycodex-ai@beta oh-my-openagent@latest oh-my-openagent@beta; do
+            echo "::group::published install smoke: $spec"
+            if node script/published-install-smoke.mjs --package="$spec"; then
+              echo "published install smoke passed for $spec"
+            else
+              echo "::warning::published install smoke failed for $spec"
+              case "$spec" in
+                *@latest) status=1 ;;
+              esac
+            fi
+            echo "::endgroup::"
+          done
+          exit $status
+
       - name: Write job summary
         if: always()
         run: |

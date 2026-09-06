@@ -19,6 +19,7 @@ import { registerSkillsUsage, type SkillsUsageTracker } from "./skills-usage"
 import { registerMemoryUsage, type MemoryUsageTracker } from "./memory-usage"
 import type { createMemoryNoticeWiring } from "./memory-notice-wiring"
 import type { MemorianGateWiring } from "./memorian-wiring"
+import type { MemorianComposition } from "./wiring-memorian"
 import type { createMemoryRecallWiring } from "./recall-wiring"
 import { createReflectionTriggerWiring } from "./trigger-wiring"
 import { registerMemoryToolSurface } from "./tools"
@@ -42,6 +43,7 @@ export function registerMemoryStatic(input: {
   readonly noticeWiring: ReturnType<typeof createMemoryNoticeWiring>
   readonly recallWiring: ReturnType<typeof createMemoryRecallWiring>
   readonly memorianGateWiring: MemorianGateWiring
+  readonly memorian: MemorianComposition
   readonly dreamTriggerWiring: DreamTriggerWiring
   readonly completionApi: (pi: SenpiExtensionAPI) => ReflectionCompletionApi | undefined
   readonly resolveContext: (sessionId: string) => MemoryIdentityContext | undefined
@@ -79,6 +81,7 @@ export function registerMemoryStatic(input: {
     nudgeWiring.register(pi)
     noticeWiring.register(pi)
     memorianGateWiring.attachEntrySink((customType, data) => pi.appendEntry(customType, data))
+    input.memorian.registerHooks(pi)
   }
   const promptHandler = createPromptHandler({
     resolveContext,
@@ -119,7 +122,7 @@ export function registerMemoryStatic(input: {
     const result = await journalWiringFor(identity).reconcileSession(eventCtx)
     await factsWiringFor(identity).onSettled(sessionId)
     // Fire-and-forget by contract: the gate advises the NEXT turn, so this one never waits for it.
-    memorianGateWiring.onSettled(eventCtx)
+    input.memorian.trigger.onSettled(eventCtx)
     await onSettled?.(sessionId, eventCtx)
     return result
   })
@@ -209,7 +212,7 @@ export function registerMemoryStatic(input: {
     resolveSession: triggerSessionFor,
     onLaunch: () => {},
     // A compaction rewrites the transcript the pending nudges were judged against, so they die with it.
-    onCompactionAccepted: (conversationId) => memorianGateWiring.onCompactionAccepted(conversationId),
+    onCompactionAccepted: (conversationId) => input.memorian.onCompactionAccepted(conversationId, resolveContext(conversationId)),
     ...(options.logger === undefined ? {} : { logger: options.logger }),
   })
   triggerWiring.register(pi)

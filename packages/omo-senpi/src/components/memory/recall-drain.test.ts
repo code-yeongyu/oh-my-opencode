@@ -10,6 +10,7 @@ import {
 import { MemoryFakeExtensionAPI, memorySettings } from "./memory.test-support"
 import { NUDGED_ENTRY_TYPE } from "./memorian-notice"
 import { RECALL_CUSTOM_TYPE, createMemoryRecallWiring } from "./recall-wiring"
+import { createRecallDrain } from "./recall-drain"
 import { rmEfaultTolerant } from "./teardown.test-support"
 import type { RecallLedger as RecallLedgerType } from "@oh-my-opencode/memory-core"
 import {
@@ -131,7 +132,7 @@ describe("createMemoryRecallWiring pending-nudge injection", () => {
     await dispatch(pi, eventContext([userEntry("m1", "anything at all")]))
 
     // then
-    expect(pi.entries).toEqual([{ customType: NUDGED_ENTRY_TYPE, data: { version: 1, nudges: [NUDGE] } }])
+    expect(pi.entries).toEqual([{ customType: NUDGED_ENTRY_TYPE, data: { version: 1, nudges: [NUDGE], via: "prompt" } }])
   }, 30_000)
 
   test("#given a failing ledger #when a nudge is injected #then the injection still lands and the failure is logged", async () => {
@@ -238,6 +239,28 @@ describe("createMemoryRecallWiring pending-nudge injection", () => {
     // then
     expect(result).toBeUndefined()
     expect(pi.entries).toEqual([])
+  }, 30_000)
+
+  test("#given a queued nudge #when before_agent_start dispatches #then the hidden sourced block is injected", async () => {
+    const { context } = await fixture(tempDirs)
+    const pi = new MemoryFakeExtensionAPI()
+    const drain = createRecallDrain({
+      resolveContext: () => context,
+      resolveSettings: () => memorySettings(),
+      env: {},
+      ledgerFor: () => new RecallLedger(context.identityPaths.recallLedger),
+      pendingFor: () => ({ take: async () => [] }),
+      drainQueued: () => [NUDGE],
+    })
+    drain.register(pi)
+
+    const result = await dispatch(pi, eventContext([userEntry("m1", "anything at all")]))
+
+    expect(result?.message).toEqual({
+      customType: RECALL_CUSTOM_TYPE,
+      content: renderNudgeBlock(NUDGE),
+      display: false,
+    })
   }, 30_000)
 
   test("#given a memory worker child sentinel #when a nudge is pending #then the child receives nothing", async () => {

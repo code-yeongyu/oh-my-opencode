@@ -1,107 +1,70 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { existsSync } from "node:fs"
+import { mkdtemp } from "node:fs/promises"
 import { join } from "node:path"
-import { PendingNudges } from "@oh-my-opencode/memory-core"
-import { CANDIDATE_PATH, collected, context, gate, roots, SESSION_ID } from "./memorian-wiring.test-support"
-import { rmEfaultTolerant } from "./teardown.test-support"
+import { tmpdir } from "node:os"
 
-afterEach(async () => { await Promise.all(roots.splice(0).map((root) => rmEfaultTolerant(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }))) })
+import { PendingNudges, RecallLedger, buildIdentityPaths } from "@oh-my-opencode/memory-core"
+import { createMemoryBinding } from "./binding"
+import { createMemoryIdentityContext } from "./context"
+import { createMemorianDelivery } from "./memorian-delivery"
 
-const NUDGES = [{ path: CANDIDATE_PATH, hint: "Drain nodes first." }]
+const sessionId = "delivery-persist-session"
+const nudge = { path: "reference/rollouts.md", hint: "Drain nodes first." }
+const roots: string[] = []
 
-describe("createMemorianGateWiring persist", () => {
-  test("#given a gate child that returns nudged #when the settle task completes #then the pending file holds the nudges stamped with the launch epoch", async () => {
-    const identity = await context()
-    const wiring = gate({
-      collect: async () => collected(identity),
-      launches: [],
-      identity,
-      launch: async () => ({ status: "nudged" as const, nudges: NUDGES, runId: "run-nudged-1" }),
-    })
+afterEach(async () => {
+  for (const root of roots.splice(0)) await Bun.$`rm -rf ${root}`
+})
 
-    wiring.onSettled({})
-    await wiring.whenIdle()
+async function fixture() {
+  const root = await mkdtemp(join(tmpdir(), "omo-memorian-delivery-persist-"))
+  roots.push(root)
+  const context = createMemoryIdentityContext({
+    identity: "delivery-agent",
+    identityPaths: buildIdentityPaths(root, "delivery-agent"),
+    binding: createMemoryBinding({ identity: "delivery-agent", repoPath: join(root, "repo"), boundAt: 0 }),
+  })
+  const pending = new PendingNudges(context.identityPaths.recallPending)
+  const delivery = createMemorianDelivery({
+    ledgerFor: () => new RecallLedger(context.identityPaths.recallLedger),
+    pendingFor: () => pending,
+    sendMessage: () => undefined,
+    appendEntry: () => undefined,
+  })
+  return { context, pending, delivery }
+}
 
-    expect(await new PendingNudges(identity.identityPaths.recallPending).take(SESSION_ID, { currentEpoch: 0 })).toEqual(NUDGES)
+describe("memorian delivery persistence", () => {
+  test("#given accepted nudges #when delivery accepts #then pending stores the launch epoch", async () => {
+    const f = await fixture()
+    await f.delivery.accept(sessionId, f.context, [nudge], 3)
+    await expect(f.pending.take(sessionId, { currentEpoch: 3 })).resolves.toEqual([nudge])
   })
 
-  test("#given a compaction accepted before the nudged result lands #when the settle task completes #then no pending file is written and a warning is logged", async () => {
-    const identity = await context()
-    const logs: Array<{ message: string, details?: unknown }> = []
-    const writes: unknown[] = []
-    const wiring = gate({
-      collect: async () => collected(identity),
-      launches: [],
-      identity,
-      logs,
-      launch: async () => {
-        wiring.onCompactionAccepted(SESSION_ID)
-        return { status: "nudged" as const, nudges: NUDGES, runId: "run-nudged-2" }
-      },
-      pendingFor: () => ({
-        write: async (...args) => { writes.push(args) },
-        delete: async () => undefined,
-        take: async () => [],
-      }),
-    })
-
-    wiring.onSettled({})
-    await wiring.whenIdle()
-
-    expect(writes).toEqual([])
-    expect(logs.map((entry) => entry.message)).toContain("memorian gate nudges dropped after compaction")
+  test("#given pending nudges #when compaction is accepted #then pending is deleted", async () => {
+    const f = await fixture()
+    await f.delivery.accept(sessionId, f.context, [nudge], 0)
+    await f.delivery.onCompactionAccepted(sessionId, f.context)
+    await expect(f.pending.take(sessionId, { currentEpoch: 0 })).resolves.toEqual([])
   })
 
-  test("#given a compaction accepted during the write #when the write completes #then the landed file is retracted", async () => {
-    const identity = await context()
-    const real = new PendingNudges(identity.identityPaths.recallPending)
-    const ops: string[] = []
-    const wiring = gate({
-      collect: async () => collected(identity),
-      launches: [],
-      identity,
-      launch: async () => ({ status: "nudged" as const, nudges: NUDGES, runId: "run-nudged-3" }),
-      pendingFor: () => ({
-        write: async (sessionId, nudges, options) => {
-          ops.push("write")
-          wiring.onCompactionAccepted(SESSION_ID)
-          await real.write(sessionId, nudges, options)
-        },
-        delete: async (sessionId) => {
-          ops.push("delete")
-          await real.delete(sessionId)
-        },
-        take: async () => [],
-      }),
-    })
-
-    wiring.onSettled({})
-    await wiring.whenIdle()
-
-    expect(ops).toEqual(["write", "delete"])
-    expect(existsSync(join(identity.identityPaths.recallPending, `${SESSION_ID}.json`))).toBe(false)
-    expect(await real.take(SESSION_ID, { currentEpoch: wiring.currentCompactionEpoch(SESSION_ID) })).toEqual([])
+  test("#given accepted nudges #when prompt delivery drains the in-memory queue #then the pending file stays for take() to consume", async () => {
+    const f = await fixture()
+    await f.delivery.accept(sessionId, f.context, [nudge], 0)
+    expect(f.delivery.drainForPrompt(sessionId, f.context)).toEqual([nudge])
+    expect(existsSync(join(f.context.identityPaths.recallPending, `${sessionId}.json`))).toBe(true)
   })
 
-  test("#given pendingFor.write rejecting #when a nudged result lands #then the failure is logged and nothing throws", async () => {
-    const identity = await context()
-    const logs: Array<{ message: string, details?: unknown }> = []
-    const wiring = gate({
-      collect: async () => collected(identity),
-      launches: [],
-      identity,
-      logs,
-      launch: async () => ({ status: "nudged" as const, nudges: NUDGES, runId: "run-nudged-4" }),
-      pendingFor: () => ({
-        write: async () => { throw new Error("pending write exploded") },
-        delete: async () => undefined,
-        take: async () => [],
-      }),
+  test("#given a rejecting pending writer #when accepted #then delivery logs no throw and remains usable", async () => {
+    const f = await fixture()
+    const delivery = createMemorianDelivery({
+      ledgerFor: () => new RecallLedger(f.context.identityPaths.recallLedger),
+      pendingFor: () => ({ write: async () => { throw new Error("disk") }, delete: async () => undefined }),
+      sendMessage: () => undefined,
+      appendEntry: () => undefined,
     })
-
-    wiring.onSettled({})
-    await wiring.whenIdle()
-
-    expect(logs.map((entry) => entry.message)).toEqual(["omo-senpi memorian gate failed"])
+    await delivery.accept(sessionId, f.context, [nudge], 0)
+    expect(delivery.drainForPrompt(sessionId, f.context)).toEqual([nudge])
   })
 })

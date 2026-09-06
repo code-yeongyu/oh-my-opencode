@@ -1,0 +1,172 @@
+import { afterEach, describe, expect, test } from "bun:test"
+import { mkdtemp } from "node:fs/promises"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
+
+import { buildIdentityPaths, PendingNudges, RecallLedger, type RecallNudge } from "@oh-my-opencode/memory-core"
+import { IdleInjectionCoordinator } from "../../extension/idle-injection-coordinator"
+import { createMemoryBinding } from "./binding"
+import { createMemoryIdentityContext, type MemoryIdentityContext } from "./context"
+import { tryAcquireJudgeSlot } from "./memorian-concurrency"
+import { createMemorianDelivery } from "./memorian-delivery"
+import { createMemorianTrigger } from "./memorian-trigger"
+import { MemoryFakeExtensionAPI, memorySettings } from "./memory.test-support"
+import { ToolArgWindow } from "./recall-query-planner-tools"
+import { createRecallDrain } from "./recall-drain"
+
+const sessionId = "observability-session"
+const nudge: RecallNudge = { path: "memory/rollouts.md", hint: "Drain nodes before rollout." }
+const dirs: string[] = []
+
+afterEach(async () => {
+  for (const dir of dirs.splice(0)) await Bun.$`rm -rf ${dir}`
+})
+
+function contextFor(dir: string): MemoryIdentityContext {
+  return createMemoryIdentityContext({
+    identity: "observability-agent",
+    identityPaths: buildIdentityPaths(join(dir, "memory"), "observability-agent"),
+    binding: createMemoryBinding({ identity: "observability-agent", repoPath: join(dir, "repo"), boundAt: 0 }),
+  })
+}
+
+function triggerFor(logs: Array<{ message: string; details?: unknown }>, gateEntries: unknown[]) {
+  const context = contextFor("/tmp/memorian-observability-trigger")
+  return createMemorianTrigger({
+    snapshotSession: () => ({ id: sessionId, entries: [] }),
+    resolveModelRegistry: () => undefined,
+    collectCandidatesFromSnapshot: async () => ({
+      sessionId,
+      context,
+      candidates: [{ path: "memory/one.md", description: "one", excerpt: "one", score: 1 }],
+      surfaced: new Set<string>(),
+      maxItems: 1,
+      transcript: [],
+    }),
+    runnerFor: () => ({ launch: async () => ({ status: "empty" }) }),
+    resolveContext: () => context,
+    onAccepted: async () => undefined,
+    report: (_sessionId, outcome, collected) => gateEntries.push({ outcome, collected }),
+    currentCompactionEpoch: () => 0,
+    argWindow: new ToolArgWindow(),
+    logger: {
+      info: (message, details) => logs.push({ message, details }),
+      warn: () => undefined,
+      error: () => undefined,
+    },
+  })
+}
+
+async function fixture(): Promise<{
+  context: MemoryIdentityContext
+  ledger: RecallLedger
+  pending: PendingNudges
+}> {
+  const dir = await mkdtemp(join(tmpdir(), "memorian-observability-"))
+  dirs.push(dir)
+  const context = contextFor(dir)
+  return {
+    context,
+    ledger: new RecallLedger(context.identityPaths.recallLedger),
+    pending: new PendingNudges(context.identityPaths.recallPending),
+  }
+}
+
+describe("memorian observability contract", () => {
+  test("#given unchanged candidates #when triggered twice #then skip is logged without a gate entry", async () => {
+    const logs: Array<{ message: string; details?: unknown }> = []
+    const gateEntries: unknown[] = []
+    const trigger = triggerFor(logs, gateEntries)
+
+    trigger.onSettled({})
+    await trigger.whenIdle()
+    trigger.onSettled({})
+    await trigger.whenIdle()
+
+    expect(logs).toContainEqual({
+      message: "memorian trigger skipped",
+      details: { sessionId, reason: "unchanged_candidates" },
+    })
+    expect(gateEntries).toEqual([])
+  })
+
+  test("#given judge slots are full #when triggered #then judge cap is logged without a gate entry", async () => {
+    const logs: Array<{ message: string; details?: unknown }> = []
+    const gateEntries: unknown[] = []
+    const trigger = triggerFor(logs, gateEntries)
+    const first = tryAcquireJudgeSlot()
+    const second = tryAcquireJudgeSlot()
+
+    trigger.onSettled({})
+    await trigger.whenIdle()
+    first?.()
+    second?.()
+
+    expect(logs).toContainEqual({
+      message: "memorian trigger skipped",
+      details: { sessionId, reason: "judge_cap" },
+    })
+    expect(gateEntries).toEqual([])
+  })
+
+  test("#given accepted nudges #when steer wake and prompt deliver #then each trace records its via", async () => {
+    const steer = await fixture()
+    const steerEntries: unknown[] = []
+    const steerDelivery = createMemorianDelivery({
+      ledgerFor: () => steer.ledger,
+      pendingFor: () => steer.pending,
+      sendMessage: () => undefined,
+      appendEntry: (_type, data) => steerEntries.push(data),
+    })
+    await steerDelivery.accept("steer-session", steer.context, [nudge], 0)
+    await steerDelivery.onToolResult("steer-session", steer.context, {
+      hasPendingMessages: () => false,
+      isIdle: () => false,
+    })
+
+    const wake = await fixture()
+    const wakeEntries: unknown[] = []
+    let wakeEntryReady: (() => void) | undefined
+    const wakeReady = new Promise<void>((resolve) => { wakeEntryReady = resolve })
+    const coordinator = new IdleInjectionCoordinator(() => undefined)
+    const wakeDelivery = createMemorianDelivery({
+      ledgerFor: () => wake.ledger,
+      pendingFor: () => wake.pending,
+      coordinator,
+      sendMessage: () => undefined,
+      appendEntry: (_type, data) => { wakeEntries.push(data); if (typeof data === "object" && data !== null && "via" in data && (data as { via: unknown }).via === "wake") wakeEntryReady?.() },
+    })
+    await wakeDelivery.accept("wake-session", wake.context, [nudge], 0)
+    coordinator.enqueue({ key: "task-completion:1", source: "task-completion", content: "done" })
+    coordinator.flushOnIdle()
+    await Promise.race([wakeReady, new Promise<void>((_, r) => setTimeout(() => r(new Error("wake ready timeout")), 5000))])
+
+    const prompt = await fixture()
+    const promptEntries: unknown[] = []
+    const promptDelivery = createMemorianDelivery({
+      ledgerFor: () => prompt.ledger,
+      pendingFor: () => prompt.pending,
+      sendMessage: () => undefined,
+      appendEntry: (_type, data) => promptEntries.push(data),
+    })
+    await promptDelivery.accept("prompt-session", prompt.context, [nudge], 0)
+    const drain = createRecallDrain({
+      resolveContext: (id) => (id === "prompt-session" ? prompt.context : undefined),
+      resolveSettings: () => memorySettings(),
+      env: {},
+      ledgerFor: () => prompt.ledger,
+      pendingFor: () => prompt.pending,
+      drainQueued: promptDelivery.drainForPrompt,
+    })
+    const pi = new MemoryFakeExtensionAPI()
+    drain.register(pi)
+    await pi.dispatch("before_agent_start", { type: "before_agent_start" }, {
+      sessionManager: { getSessionId: () => "prompt-session", getBranch: () => [] },
+    })
+
+    expect(steerEntries).toEqual([{ version: 1, nudges: [nudge], via: "steer" }])
+    await Promise.race([wakeReady, new Promise<void>((_, r) => setTimeout(() => r(new Error("wake ready timeout")), 5000))])
+    expect(wakeEntries).toEqual([{ version: 1, nudges: [nudge], via: "wake" }])
+    expect(pi.entries.map((entry) => entry.data)).toEqual([{ version: 1, nudges: [nudge], via: "prompt" }])
+  })
+})
