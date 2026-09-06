@@ -1,0 +1,6 @@
+tar in use: tar (GNU tar) 1.35
+bare tar  -f absolute  -C absolute  (cwd) -> exit 2, tar (child): Cannot connect to C: resolve failed | extracted=false
+bare tar  -f basename  -C absolute  (cwd) -> exit 2, tar: C\:\\Users\\LilMG\\AppData\\Local\\Temp\tar-bare-E33EEU\\extracted: Cannot open: No such file or directory | extracted=false
+bare tar  -f basename  -C relative  (cwd) -> exit 0 | extracted=true
+bare tar  -f absolute --force-local -C absolute -> exit 2, tar: C\:\\Users\\LilMG\\AppData\\Local\\Temp\tar-bare-E33EEU\\extracted: Cannot open: No such file or directory | extracted=false
+EXIT=0

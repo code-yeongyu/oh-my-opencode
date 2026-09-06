@@ -1,0 +1,10 @@
+oh-my-openagent-5.0.0-beta.45.tgz
+(node:57556) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+tar (child): Cannot connect to C: resolve failed
+
+gzip: stdin: unexpected end of file
+tar: Child returned status 128
+tar: Error is not recoverable: exiting now
+published install smoke failed: Command failed: tar -xzf C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-ZscYNE\oh-my-openagent-5.0.0-beta.45.tgz -C C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-ZscYNE\extracted
+EXIT=1

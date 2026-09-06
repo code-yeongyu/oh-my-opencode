@@ -1,0 +1,39 @@
+lazycodex-ai-4.19.4.tgz
+(node:65832) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[smoke] Building omo@4.19.4
+
+added 18 packages in 6s
+npm warn install-scripts 1 package had install scripts blocked because they are not covered by allowScripts:
+npm warn install-scripts   @code-yeongyu/comment-checker@0.8.0 (postinstall: node postinstall.js)
+npm warn install-scripts
+npm warn install-scripts Run `npm install-scripts ls` to review, or `npm install-scripts approve <pkg>` to allow.
+npm notice run @sisyphuslabs/omo-codex-plugin@4.19.4 sync:skills
+npm notice run node scripts/sync-skills.mjs
+[smoke] Linked omo-codegraph -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\codegraph\dist\cli.js
+[smoke] Linked omo-comment-checker -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\comment-checker\dist\cli.js
+[smoke] Linked omo-git-bash-hook -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\git-bash\dist\cli.js
+[smoke] Linked lazycodex-executor-verify -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\lazycodex-executor-verify\dist\cli.js
+[smoke] Linked omo-lsp -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\lsp\dist\cli.js
+[smoke] Linked omo-rules -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\rules\dist\cli.js
+[smoke] Linked omo-start-work-continuation -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\start-work-continuation\dist\cli.js
+[smoke] Linked omo-telemetry -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\telemetry\dist\cli.js
+[smoke] Linked omo-ultrawork -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\ultrawork\dist\cli.js
+[smoke] Linked omo-ulw-loop -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\ulw-loop\dist\cli.js
+[smoke] Linked ulw -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\ulw-loop\dist\cli.js
+[smoke] Linked ulw-loop -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4\components\ulw-loop\dist\cli.js
+[smoke] Linked omo -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\extracted\package\dist\cli\index.js
+[smoke] Linked agent explorer.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\explorer.toml
+[smoke] Linked agent lazycodex-clone-fidelity-reviewer.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\lazycodex-clone-fidelity-reviewer.toml
+[smoke] Linked agent lazycodex-code-reviewer.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\lazycodex-code-reviewer.toml
+[smoke] Linked agent lazycodex-gate-reviewer.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\lazycodex-gate-reviewer.toml
+[smoke] Linked agent lazycodex-qa-executor.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\lazycodex-qa-executor.toml
+[smoke] Linked agent lazycodex-worker-high.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\lazycodex-worker-high.toml
+[smoke] Linked agent lazycodex-worker-low.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\lazycodex-worker-low.toml
+[smoke] Linked agent lazycodex-worker-medium.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\lazycodex-worker-medium.toml
+[smoke] Linked agent librarian.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\librarian.toml
+[smoke] Linked agent metis.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\metis.toml
+[smoke] Linked agent momus.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\momus.toml
+[smoke] Linked agent plan.toml -> C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\.tmp\marketplaces\sisyphuslabs\plugins\omo\components\ultrawork\agents\plan.toml
+published install smoke OK (1 plugin(s), C:\Users\LilMG\AppData\Local\Temp\omo-published-smoke-6wpdnR\codex-home\plugins\cache\sisyphuslabs\omo\4.19.4)
+EXIT=0

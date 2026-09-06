@@ -1,0 +1,19 @@
+bun test v1.3.14 (0d9b296a)
+
+script\lazycodex-published-smoke-workflow.test.ts:
+(pass) published LazyCodex smoke workflow > runs published lazycodex-ai smoke commands from a clean external directory [11.41ms]
+
+script\published-install-smoke.test.ts:
+(pass) published install smoke > #given an installed plugin without the composed ultrawork skill #when artifacts are checked #then the missing path is reported [5.97ms]
+(pass) published install smoke > #given a fully installed plugin #when artifacts are checked #then nothing is reported [4.36ms]
+(pass) published install smoke > #given both payload sources #when smoke args are parsed #then the package spec and tarball path are separated [1.54ms]
+(pass) published install smoke > #given specs carrying shell metacharacters #when they are checked #then none is accepted for packing [0.98ms]
+(pass) published install smoke > #given plain dist-tag and exact-version specs #when they are checked #then both are accepted [0.84ms]
+(pass) published install smoke > #given a tarball packed beside the sandbox #when it is extracted #then the payload lands under the sandbox [48.78ms]
+(pass) published install smoke > #given a tarball handed in from outside the sandbox #when it is extracted #then the payload still lands under the sandbox [49.43ms]
+
+ 8 pass
+ 0 fail
+ 28 expect() calls
+Ran 8 tests across 2 files. [2.68s]
+EXIT=0

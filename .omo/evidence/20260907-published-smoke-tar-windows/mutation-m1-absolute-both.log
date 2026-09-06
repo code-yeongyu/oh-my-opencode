@@ -1,0 +1,66 @@
+bun test v1.3.14 (0d9b296a)
+
+script\published-install-smoke.test.ts:
+(pass) published install smoke > #given an installed plugin without the composed ultrawork skill #when artifacts are checked #then the missing path is reported [4.89ms]
+(pass) published install smoke > #given a fully installed plugin #when artifacts are checked #then nothing is reported [4.31ms]
+(pass) published install smoke > #given both payload sources #when smoke args are parsed #then the package spec and tarball path are separated [1.00ms]
+(pass) published install smoke > #given specs carrying shell metacharacters #when they are checked #then none is accepted for packing [1.09ms]
+(pass) published install smoke > #given plain dist-tag and exact-version specs #when they are checked #then both are accepted [1.03ms]
+tar (child): Cannot connect to C: resolve failed
+
+gzip: stdin: unexpected end of file
+tar: Child returned status 128
+tar: Error is not recoverable: exiting now
+56 | // addressing both arguments relative to it keeps every path colon-free, which GNU tar and bsdtar
+57 | // accept alike.
+58 | export async function extractTarball(tarballPath, workingDirectory) {
+59 |   const extractedRoot = join(workingDirectory, "extracted")
+60 |   await mkdir(extractedRoot, { recursive: true })
+61 |   execFileSync("tar", ["-xzf", tarballPath, "-C", extractedRoot], {
+       ^
+error: Command failed: tar -xzf C:\Users\LilMG\AppData\Local\Temp\omo-smoke-sandbox-p2GnSo\probe.tgz -C C:\Users\LilMG\AppData\Local\Temp\omo-smoke-sandbox-p2GnSo\extracted
+ signal: null,
+ status: 2,
+ output: [ null, null, null ],
+    pid: 62948,
+ stdout: null,
+ stderr: null,
+
+      at genericNodeError (node:child_process:1010:13)
+      at checkExecSyncError (node:child_process:470:27)
+      at execFileSync (node:child_process:269:31)
+      at extractTarball (C:\Users\LilMG\Desktop\oh-my-openagent\script\published-install-smoke.mjs:61:3)
+      at async <anonymous> (C:\Users\LilMG\Desktop\oh-my-openagent\script\published-install-smoke.test.ts:109:31)
+(fail) published install smoke > #given a tarball packed beside the sandbox #when it is extracted #then the payload lands under the sandbox [2840.66ms]
+tar (child): Cannot connect to C: resolve failed
+
+gzip: stdin: unexpected end of file
+tar: Child returned status 128
+tar: Error is not recoverable: exiting now
+56 | // addressing both arguments relative to it keeps every path colon-free, which GNU tar and bsdtar
+57 | // accept alike.
+58 | export async function extractTarball(tarballPath, workingDirectory) {
+59 |   const extractedRoot = join(workingDirectory, "extracted")
+60 |   await mkdir(extractedRoot, { recursive: true })
+61 |   execFileSync("tar", ["-xzf", tarballPath, "-C", extractedRoot], {
+       ^
+error: Command failed: tar -xzf C:\Users\LilMG\AppData\Local\Temp\omo-smoke-source-1Uuf59\probe.tgz -C C:\Users\LilMG\AppData\Local\Temp\omo-smoke-sandbox-Ia6uwE\extracted
+ signal: null,
+ status: 2,
+ output: [ null, null, null ],
+    pid: 65188,
+ stdout: null,
+ stderr: null,
+
+      at genericNodeError (node:child_process:1010:13)
+      at checkExecSyncError (node:child_process:470:27)
+      at execFileSync (node:child_process:269:31)
+      at extractTarball (C:\Users\LilMG\Desktop\oh-my-openagent\script\published-install-smoke.mjs:61:3)
+      at async <anonymous> (C:\Users\LilMG\Desktop\oh-my-openagent\script\published-install-smoke.test.ts:124:31)
+(fail) published install smoke > #given a tarball handed in from outside the sandbox #when it is extracted #then the payload still lands under the sandbox [2832.43ms]
+
+ 5 pass
+ 2 fail
+ 11 expect() calls
+Ran 7 tests across 1 file. [7.59s]
+EXIT=1

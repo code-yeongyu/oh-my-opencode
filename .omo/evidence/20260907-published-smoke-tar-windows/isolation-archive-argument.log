@@ -1,0 +1,16 @@
+round 1 | GNU -f ABSOLUTE            -C relative -> exit 2, tar (child): Cannot connect to C: resolve failed | extracted=false
+round 1 | GNU -f relative            -C relative -> exit 0 | extracted=true
+round 1 | GNU -f ABSOLUTE --force-local -C relative -> exit 0 | extracted=true
+round 1 | BSD -f ABSOLUTE --force-local -C relative -> exit 1, tar.exe: Option --force-local is not supported
+ | extracted=false
+round 2 | GNU -f ABSOLUTE            -C relative -> exit 2, tar (child): Cannot connect to C: resolve failed | extracted=false
+round 2 | GNU -f relative            -C relative -> exit 0 | extracted=true
+round 2 | GNU -f ABSOLUTE --force-local -C relative -> exit 0 | extracted=true
+round 2 | BSD -f ABSOLUTE --force-local -C relative -> exit 1, tar.exe: Option --force-local is not supported
+ | extracted=false
+round 3 | GNU -f ABSOLUTE            -C relative -> exit 2, tar (child): Cannot connect to C: resolve failed | extracted=false
+round 3 | GNU -f relative            -C relative -> exit 0 | extracted=true
+round 3 | GNU -f ABSOLUTE --force-local -C relative -> exit 0 | extracted=true
+round 3 | BSD -f ABSOLUTE --force-local -C relative -> exit 1, tar.exe: Option --force-local is not supported
+ | extracted=false
+EXIT=0

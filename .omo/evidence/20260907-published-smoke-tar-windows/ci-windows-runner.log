@@ -1,0 +1,346 @@
+﻿2026-09-06T18:20:03.4357796Z Current runner version: '2.337.0'
+2026-09-06T18:20:03.4662458Z ##[group]Runner Image Provisioner
+2026-09-06T18:20:03.4663546Z Hosted Compute Agent
+2026-09-06T18:20:03.4664762Z Version: 20260819.586
+2026-09-06T18:20:03.4665402Z Commit: 3cc4a88dfa507ef76119ad1bb3eccc6378bb2b76
+2026-09-06T18:20:03.4666087Z Build Date: 2026-08-18T23:20:18Z
+2026-09-06T18:20:03.4666719Z Worker ID: {9e5e8fe7-4c8d-42fa-a53e-c960bfa3aaf4}
+2026-09-06T18:20:03.4667385Z Azure Region: eastus
+2026-09-06T18:20:03.4667888Z ##[endgroup]
+2026-09-06T18:20:03.4669374Z ##[group]Operating System
+2026-09-06T18:20:03.4669996Z Microsoft Windows Server 2025
+2026-09-06T18:20:03.4670572Z 10.0.26100
+2026-09-06T18:20:03.4671059Z Datacenter
+2026-09-06T18:20:03.4671552Z ##[endgroup]
+2026-09-06T18:20:03.4672081Z ##[group]Runner Image
+2026-09-06T18:20:03.4672624Z Image: windows-2025-vs2026
+2026-09-06T18:20:03.4673176Z Version: 20260824.214.3
+2026-09-06T18:20:03.4674672Z Included Software: https://github.com/actions/runner-images/blob/win25-vs2026/20260824.214/images/windows/Windows2025-VS2026-Readme.md
+2026-09-06T18:20:03.4676303Z Image Release: https://github.com/actions/runner-images/releases/tag/win25-vs2026%2F20260824.214
+2026-09-06T18:20:03.4677269Z ##[endgroup]
+2026-09-06T18:20:03.4678367Z ##[group]GITHUB_TOKEN Permissions
+2026-09-06T18:20:03.4680308Z Contents: read
+2026-09-06T18:20:03.4680943Z Metadata: read
+2026-09-06T18:20:03.4681477Z ##[endgroup]
+2026-09-06T18:20:03.4683655Z Secret source: Actions
+2026-09-06T18:20:03.4685217Z Prepare workflow directory
+2026-09-06T18:20:03.5971188Z Prepare all required actions
+2026-09-06T18:20:03.6020887Z Getting action download info
+2026-09-06T18:20:03.7558108Z Download action repository 'actions/setup-node@v7' (SHA:820762786026740c76f36085b0efc47a31fe5020)
+2026-09-06T18:20:04.0290704Z Download action repository 'oven-sh/setup-bun@v2' (SHA:0c5077e51419868618aeaa5fe8019c62421857d6)
+2026-09-06T18:20:04.2436455Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-09-06T18:20:04.9051500Z Complete job name: lazycodex-published-smoke (windows-latest)
+2026-09-06T18:20:05.7560621Z ##[group]Run actions/setup-node@v7
+2026-09-06T18:20:05.7561646Z with:
+2026-09-06T18:20:05.7562054Z   node-version: 24
+2026-09-06T18:20:05.7562477Z   check-latest: false
+2026-09-06T18:20:05.7566715Z   token: ***
+2026-09-06T18:20:05.7567179Z   package-manager-cache: true
+2026-09-06T18:20:05.7567946Z ##[endgroup]
+2026-09-06T18:20:06.2234820Z Found in cache @ C:\hostedtoolcache\windows\node\24.19.0\x64
+2026-09-06T18:20:06.2242599Z ##[group]Environment details
+2026-09-06T18:20:12.4170551Z node: v24.19.0
+2026-09-06T18:20:12.4171230Z npm: 11.17.0
+2026-09-06T18:20:12.4171710Z yarn: 1.22.22
+2026-09-06T18:20:12.4173050Z ##[endgroup]
+2026-09-06T18:20:12.8924749Z ##[group]Run oven-sh/setup-bun@v2
+2026-09-06T18:20:12.8925229Z with:
+2026-09-06T18:20:12.8925494Z   bun-version: 1.4.0
+2026-09-06T18:20:12.8925786Z   no-cache: false
+2026-09-06T18:20:12.8929056Z   token: ***
+2026-09-06T18:20:12.8929347Z ##[endgroup]
+2026-09-06T18:20:13.4364999Z Cache hit for: bun-HkdUWsJeWe4WiHi5oTwlgt+dgOI=
+2026-09-06T18:20:13.8452704Z Received 39083483 of 39083483 (100.0%), 104.4 MBs/sec
+2026-09-06T18:20:13.8454546Z Cache Size: ~37 MB (39083483 B)
+2026-09-06T18:20:13.8564948Z [command]"C:\Program Files\Git\usr\bin\tar.exe" -xf D:/a/_temp/b86991eb-21cf-4abd-b05d-8f0673b6b826/cache.tzst -P -C D:/a/oh-my-openagent/oh-my-openagent --force-local --use-compress-program "zstd -d"
+2026-09-06T18:20:21.4461261Z Cache restored successfully
+2026-09-06T18:20:21.4501182Z [command]C:\Users\runneradmin\.bun\bin\bun.exe --revision
+2026-09-06T18:20:22.0841840Z 1.4.0+34cbb9a40
+2026-09-06T18:20:22.0862613Z Using a cached version of Bun: 1.4.0+34cbb9a40
+2026-09-06T18:20:22.1313750Z ##[group]Run actions/checkout@v7
+2026-09-06T18:20:22.1314154Z with:
+2026-09-06T18:20:22.1314424Z   repository: LilMGenius/oh-my-openagent
+2026-09-06T18:20:22.1317525Z   token: ***
+2026-09-06T18:20:22.1317769Z   ssh-strict: true
+2026-09-06T18:20:22.1320430Z   ssh-user: git
+2026-09-06T18:20:22.1320699Z   persist-credentials: true
+2026-09-06T18:20:22.1320978Z   clean: true
+2026-09-06T18:20:22.1321238Z   sparse-checkout-cone-mode: true
+2026-09-06T18:20:22.1321551Z   fetch-depth: 1
+2026-09-06T18:20:22.1321812Z   fetch-tags: false
+2026-09-06T18:20:22.1322085Z   show-progress: true
+2026-09-06T18:20:22.1322325Z   lfs: false
+2026-09-06T18:20:22.1322537Z   submodules: false
+2026-09-06T18:20:22.1322782Z   set-safe-directory: true
+2026-09-06T18:20:22.1323067Z   allow-unsafe-pr-checkout: false
+2026-09-06T18:20:22.1323370Z ##[endgroup]
+2026-09-06T18:20:22.2459089Z Syncing repository: LilMGenius/oh-my-openagent
+2026-09-06T18:20:22.2462639Z ##[group]Getting Git version info
+2026-09-06T18:20:22.2463263Z Working directory is 'D:\a\oh-my-openagent\oh-my-openagent'
+2026-09-06T18:20:22.3696033Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-09-06T18:20:22.8049159Z git version 2.55.0.windows.5
+2026-09-06T18:20:22.8109285Z ##[endgroup]
+2026-09-06T18:20:22.8127581Z Temporarily overriding HOME='D:\a\_temp\47b974dc-14cc-4c21-a1b8-655371d9a714' before making global git config changes
+2026-09-06T18:20:22.8129163Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T18:20:22.8139796Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\oh-my-openagent\oh-my-openagent
+2026-09-06T18:20:22.8843457Z Deleting the contents of 'D:\a\oh-my-openagent\oh-my-openagent'
+2026-09-06T18:20:22.8848845Z ##[group]Determining repository object format
+2026-09-06T18:20:22.8851170Z ##[endgroup]
+2026-09-06T18:20:22.8851832Z ##[group]Initializing the repository
+2026-09-06T18:20:22.8861646Z [command]"C:\Program Files\Git\bin\git.exe" init D:\a\oh-my-openagent\oh-my-openagent
+2026-09-06T18:20:22.9723814Z Initialized empty Git repository in D:/a/oh-my-openagent/oh-my-openagent/.git/
+2026-09-06T18:20:22.9773842Z [command]"C:\Program Files\Git\bin\git.exe" remote add origin https://github.com/LilMGenius/oh-my-openagent
+2026-09-06T18:20:23.0415293Z ##[endgroup]
+2026-09-06T18:20:23.0415985Z ##[group]Disabling automatic garbage collection
+2026-09-06T18:20:23.0426577Z [command]"C:\Program Files\Git\bin\git.exe" config --local gc.auto 0
+2026-09-06T18:20:23.0746458Z ##[endgroup]
+2026-09-06T18:20:23.0747066Z ##[group]Setting up auth
+2026-09-06T18:20:23.0748006Z Removing SSH command configuration
+2026-09-06T18:20:23.0762623Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T18:20:23.1085389Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-09-06T18:20:24.1742999Z Removing HTTP extra header
+2026-09-06T18:20:24.1755051Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T18:20:24.2068540Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-09-06T18:20:24.7395250Z Removing includeIf entries pointing to credentials config files
+2026-09-06T18:20:24.7407495Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T18:20:24.7737756Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-09-06T18:20:25.3023150Z [command]"C:\Program Files\Git\bin\git.exe" config --file D:\a\_temp\git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config http.https://github.com/.extraheader "AUTHORIZATION: basic ***"
+2026-09-06T18:20:25.3358198Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git.path D:\a\_temp\git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:25.3689987Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git/worktrees/*.path D:\a\_temp\git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:25.4093206Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:25.4405452Z [command]"C:\Program Files\Git\bin\git.exe" config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:25.4702034Z ##[endgroup]
+2026-09-06T18:20:25.4702616Z ##[group]Fetching the repository
+2026-09-06T18:20:25.4717568Z [command]"C:\Program Files\Git\bin\git.exe" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b60ef787fdfd8396d3a635ddd048824886c940ee:refs/remotes/pull/1/merge
+2026-09-06T18:20:29.1247716Z From https://github.com/LilMGenius/oh-my-openagent
+2026-09-06T18:20:29.1248801Z  * [new ref]         b60ef787fdfd8396d3a635ddd048824886c940ee -> pull/1/merge
+2026-09-06T18:20:29.1295718Z ##[endgroup]
+2026-09-06T18:20:29.1296343Z ##[group]Determining the checkout info
+2026-09-06T18:20:29.1297332Z ##[endgroup]
+2026-09-06T18:20:29.1307139Z [command]"C:\Program Files\Git\bin\git.exe" sparse-checkout disable
+2026-09-06T18:20:29.1801897Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset-all extensions.worktreeConfig
+2026-09-06T18:20:29.2102221Z ##[group]Checking out the ref
+2026-09-06T18:20:29.2111207Z [command]"C:\Program Files\Git\bin\git.exe" checkout --progress --force refs/remotes/pull/1/merge
+2026-09-06T18:20:30.2800270Z Updating files:  26% (2744/10182)
+2026-09-06T18:20:30.3071386Z Updating files:  27% (2750/10182)
+2026-09-06T18:20:30.3437775Z Updating files:  28% (2851/10182)
+2026-09-06T18:20:30.3801229Z Updating files:  29% (2953/10182)
+2026-09-06T18:20:30.4078135Z Updating files:  30% (3055/10182)
+2026-09-06T18:20:30.4320234Z Updating files:  31% (3157/10182)
+2026-09-06T18:20:30.4579594Z Updating files:  32% (3259/10182)
+2026-09-06T18:20:30.4847786Z Updating files:  33% (3361/10182)
+2026-09-06T18:20:30.5085048Z Updating files:  34% (3462/10182)
+2026-09-06T18:20:30.5347177Z Updating files:  35% (3564/10182)
+2026-09-06T18:20:30.5605993Z Updating files:  36% (3666/10182)
+2026-09-06T18:20:30.5873406Z Updating files:  37% (3768/10182)
+2026-09-06T18:20:30.6164070Z Updating files:  38% (3870/10182)
+2026-09-06T18:20:30.6431800Z Updating files:  39% (3971/10182)
+2026-09-06T18:20:30.6706951Z Updating files:  40% (4073/10182)
+2026-09-06T18:20:30.6965916Z Updating files:  41% (4175/10182)
+2026-09-06T18:20:30.7244977Z Updating files:  42% (4277/10182)
+2026-09-06T18:20:30.7519459Z Updating files:  43% (4379/10182)
+2026-09-06T18:20:30.7773621Z Updating files:  44% (4481/10182)
+2026-09-06T18:20:30.8035432Z Updating files:  45% (4582/10182)
+2026-09-06T18:20:30.8311275Z Updating files:  46% (4684/10182)
+2026-09-06T18:20:30.8584865Z Updating files:  47% (4786/10182)
+2026-09-06T18:20:30.8835825Z Updating files:  48% (4888/10182)
+2026-09-06T18:20:31.1256513Z Updating files:  49% (4990/10182)
+2026-09-06T18:20:31.1512443Z Updating files:  50% (5091/10182)
+2026-09-06T18:20:31.1764205Z Updating files:  51% (5193/10182)
+2026-09-06T18:20:31.2020655Z Updating files:  52% (5295/10182)
+2026-09-06T18:20:31.2270468Z Updating files:  53% (5397/10182)
+2026-09-06T18:20:31.2509180Z Updating files:  54% (5499/10182)
+2026-09-06T18:20:31.2756578Z Updating files:  55% (5601/10182)
+2026-09-06T18:20:31.2784633Z Updating files:  56% (5702/10182)
+2026-09-06T18:20:31.2998270Z Updating files:  56% (5715/10182)
+2026-09-06T18:20:31.3282621Z Updating files:  57% (5804/10182)
+2026-09-06T18:20:31.3544373Z Updating files:  58% (5906/10182)
+2026-09-06T18:20:31.3790410Z Updating files:  59% (6008/10182)
+2026-09-06T18:20:31.4046495Z Updating files:  60% (6110/10182)
+2026-09-06T18:20:31.4302256Z Updating files:  61% (6212/10182)
+2026-09-06T18:20:31.4550511Z Updating files:  62% (6313/10182)
+2026-09-06T18:20:31.4823516Z Updating files:  63% (6415/10182)
+2026-09-06T18:20:31.5088698Z Updating files:  64% (6517/10182)
+2026-09-06T18:20:31.5352128Z Updating files:  65% (6619/10182)
+2026-09-06T18:20:31.5607610Z Updating files:  66% (6721/10182)
+2026-09-06T18:20:31.5852380Z Updating files:  67% (6822/10182)
+2026-09-06T18:20:31.6112153Z Updating files:  68% (6924/10182)
+2026-09-06T18:20:31.6363219Z Updating files:  69% (7026/10182)
+2026-09-06T18:20:31.6613682Z Updating files:  70% (7128/10182)
+2026-09-06T18:20:31.6879122Z Updating files:  71% (7230/10182)
+2026-09-06T18:20:31.7132575Z Updating files:  72% (7332/10182)
+2026-09-06T18:20:31.7500609Z Updating files:  73% (7433/10182)
+2026-09-06T18:20:31.7801587Z Updating files:  74% (7535/10182)
+2026-09-06T18:20:31.8065173Z Updating files:  75% (7637/10182)
+2026-09-06T18:20:31.8350559Z Updating files:  76% (7739/10182)
+2026-09-06T18:20:31.8607810Z Updating files:  77% (7841/10182)
+2026-09-06T18:20:31.8862795Z Updating files:  78% (7942/10182)
+2026-09-06T18:20:31.9134997Z Updating files:  79% (8044/10182)
+2026-09-06T18:20:31.9417689Z Updating files:  80% (8146/10182)
+2026-09-06T18:20:31.9690264Z Updating files:  81% (8248/10182)
+2026-09-06T18:20:31.9952903Z Updating files:  82% (8350/10182)
+2026-09-06T18:20:32.0233636Z Updating files:  83% (8452/10182)
+2026-09-06T18:20:32.0482186Z Updating files:  84% (8553/10182)
+2026-09-06T18:20:32.0765775Z Updating files:  85% (8655/10182)
+2026-09-06T18:20:32.1022699Z Updating files:  86% (8757/10182)
+2026-09-06T18:20:32.1278694Z Updating files:  87% (8859/10182)
+2026-09-06T18:20:32.1567841Z Updating files:  88% (8961/10182)
+2026-09-06T18:20:32.1820593Z Updating files:  89% (9062/10182)
+2026-09-06T18:20:32.2099101Z Updating files:  90% (9164/10182)
+2026-09-06T18:20:32.2425476Z Updating files:  91% (9266/10182)
+2026-09-06T18:20:32.2723300Z Updating files:  92% (9368/10182)
+2026-09-06T18:20:32.2903722Z Updating files:  93% (9470/10182)
+2026-09-06T18:20:32.4856321Z Updating files:  93% (9527/10182)
+2026-09-06T18:20:32.5122512Z Updating files:  94% (9572/10182)
+2026-09-06T18:20:32.5378693Z Updating files:  95% (9673/10182)
+2026-09-06T18:20:32.5674806Z Updating files:  96% (9775/10182)
+2026-09-06T18:20:32.5964734Z Updating files:  97% (9877/10182)
+2026-09-06T18:20:32.6345083Z Updating files:  98% (9979/10182)
+2026-09-06T18:20:32.6614556Z Updating files:  99% (10081/10182)
+2026-09-06T18:20:32.6615222Z Updating files: 100% (10182/10182)
+2026-09-06T18:20:32.6615743Z Updating files: 100% (10182/10182), done.
+2026-09-06T18:20:32.6835982Z Note: switching to 'refs/remotes/pull/1/merge'.
+2026-09-06T18:20:32.6836447Z 
+2026-09-06T18:20:32.6836936Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-09-06T18:20:32.6838548Z changes and commit them, and you can discard any commits you make in this
+2026-09-06T18:20:32.6839611Z state without impacting any branches by switching back to a branch.
+2026-09-06T18:20:32.6840144Z 
+2026-09-06T18:20:32.6840609Z If you want to create a new branch to retain commits you create, you may
+2026-09-06T18:20:32.6841574Z do so (now or later) by using -c with the switch command. Example:
+2026-09-06T18:20:32.6842047Z 
+2026-09-06T18:20:32.6842297Z   git switch -c <new-branch-name>
+2026-09-06T18:20:32.6842675Z 
+2026-09-06T18:20:32.6842874Z Or undo this operation with:
+2026-09-06T18:20:32.6843152Z 
+2026-09-06T18:20:32.6843299Z   git switch -
+2026-09-06T18:20:32.6843513Z 
+2026-09-06T18:20:32.6844023Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-09-06T18:20:32.6844903Z 
+2026-09-06T18:20:32.6845769Z HEAD is now at b60ef78 Merge 6d94427a329b5804bbbbd37cc0009477e5fda1cc into ad62603f07fe049c2aa250b9320c1f7522ecdadd
+2026-09-06T18:20:32.6982398Z ##[endgroup]
+2026-09-06T18:20:32.7308702Z [command]"C:\Program Files\Git\bin\git.exe" log -1 --format=%H
+2026-09-06T18:20:32.7584174Z b60ef787fdfd8396d3a635ddd048824886c940ee
+2026-09-06T18:20:32.7927656Z ##[group]Run set -uo pipefail
+2026-09-06T18:20:32.7928048Z [36;1mset -uo pipefail[0m
+2026-09-06T18:20:32.7928271Z [36;1mstatus=0[0m
+2026-09-06T18:20:32.7928690Z [36;1mfor spec in lazycodex-ai@latest lazycodex-ai@beta oh-my-openagent@latest oh-my-openagent@beta; do[0m
+2026-09-06T18:20:32.7929228Z [36;1m  echo "::group::published install smoke: $spec"[0m
+2026-09-06T18:20:32.7929656Z [36;1m  if node script/published-install-smoke.mjs --package="$spec"; then[0m
+2026-09-06T18:20:32.7930106Z [36;1m    echo "published install smoke passed for $spec"[0m
+2026-09-06T18:20:32.7930399Z [36;1m  else[0m
+2026-09-06T18:20:32.7930673Z [36;1m    echo "::warning::published install smoke failed for $spec"[0m
+2026-09-06T18:20:32.7931013Z [36;1m    case "$spec" in[0m
+2026-09-06T18:20:32.7931238Z [36;1m      *@latest) status=1 ;;[0m
+2026-09-06T18:20:32.7931470Z [36;1m    esac[0m
+2026-09-06T18:20:32.7931668Z [36;1m  fi[0m
+2026-09-06T18:20:32.7931879Z [36;1m  echo "::endgroup::"[0m
+2026-09-06T18:20:32.7932096Z [36;1mdone[0m
+2026-09-06T18:20:32.7932267Z [36;1mexit $status[0m
+2026-09-06T18:20:32.7956924Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-09-06T18:20:32.7957327Z ##[endgroup]
+2026-09-06T18:20:32.9731550Z ##[group]published install smoke: lazycodex-ai@latest
+2026-09-06T18:20:35.3597011Z lazycodex-ai-4.19.4.tgz
+2026-09-06T18:20:36.7700245Z (node:6636) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+2026-09-06T18:20:36.7702021Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T18:20:39.5232252Z tar (child): Cannot connect to C: resolve failed
+2026-09-06T18:20:39.5233879Z 
+2026-09-06T18:20:39.5234823Z gzip: stdin: unexpected end of file
+2026-09-06T18:20:39.5243761Z tar: Child returned status 128
+2026-09-06T18:20:39.5244584Z tar: Error is not recoverable: exiting now
+2026-09-06T18:20:39.5264542Z published install smoke failed: Command failed: tar -xzf C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-a9LT1M\lazycodex-ai-4.19.4.tgz -C C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-a9LT1M\extracted
+2026-09-06T18:20:39.5401304Z ##[warning]published install smoke failed for lazycodex-ai@latest
+2026-09-06T18:20:39.5408424Z ##[endgroup]
+2026-09-06T18:20:39.5408834Z ##[group]published install smoke: lazycodex-ai@beta
+2026-09-06T18:20:40.6183104Z lazycodex-ai-5.0.0-beta.44.tgz
+2026-09-06T18:20:40.6403511Z (node:7780) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+2026-09-06T18:20:40.6405242Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T18:20:43.3874100Z tar (child): Cannot connect to C: resolve failed
+2026-09-06T18:20:43.3876518Z 
+2026-09-06T18:20:43.3876974Z gzip: stdin: unexpected end of file
+2026-09-06T18:20:43.3884171Z tar: Child returned status 128
+2026-09-06T18:20:43.3885355Z tar: Error is not recoverable: exiting now
+2026-09-06T18:20:43.3905322Z published install smoke failed: Command failed: tar -xzf C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-YYduuF\lazycodex-ai-5.0.0-beta.44.tgz -C C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-YYduuF\extracted
+2026-09-06T18:20:43.4033218Z ##[warning]published install smoke failed for lazycodex-ai@beta
+2026-09-06T18:20:43.4056176Z ##[endgroup]
+2026-09-06T18:20:43.4056872Z ##[group]published install smoke: oh-my-openagent@latest
+2026-09-06T18:20:44.9792799Z oh-my-openagent-4.19.4.tgz
+2026-09-06T18:20:45.0013814Z (node:9092) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+2026-09-06T18:20:45.0016482Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T18:20:47.7288270Z tar (child): Cannot connect to C: resolve failed
+2026-09-06T18:20:47.7432953Z 
+2026-09-06T18:20:47.7433832Z gzip: stdin: unexpected end of file
+2026-09-06T18:20:47.7435846Z tar: Child returned status 128
+2026-09-06T18:20:47.7436788Z tar: Error is not recoverable: exiting now
+2026-09-06T18:20:47.7459863Z published install smoke failed: Command failed: tar -xzf C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-Qu4PKH\oh-my-openagent-4.19.4.tgz -C C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-Qu4PKH\extracted
+2026-09-06T18:20:47.7623994Z ##[warning]published install smoke failed for oh-my-openagent@latest
+2026-09-06T18:20:47.7626033Z ##[endgroup]
+2026-09-06T18:20:47.7626695Z ##[group]published install smoke: oh-my-openagent@beta
+2026-09-06T18:20:49.0765325Z oh-my-openagent-5.0.0-beta.45.tgz
+2026-09-06T18:20:49.0984245Z (node:8940) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+2026-09-06T18:20:49.0985987Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-09-06T18:20:51.8583231Z tar (child): Cannot connect to C: resolve failed
+2026-09-06T18:20:51.8583792Z 
+2026-09-06T18:20:51.8584106Z gzip: stdin: unexpected end of file
+2026-09-06T18:20:51.8592987Z tar: Child returned status 128
+2026-09-06T18:20:51.8595151Z tar: Error is not recoverable: exiting now
+2026-09-06T18:20:51.8614260Z published install smoke failed: Command failed: tar -xzf C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-bvr4Or\oh-my-openagent-5.0.0-beta.45.tgz -C C:\Users\RUNNER~1\AppData\Local\Temp\omo-published-smoke-bvr4Or\extracted
+2026-09-06T18:20:51.8743115Z ##[warning]published install smoke failed for oh-my-openagent@beta
+2026-09-06T18:20:51.8746401Z ##[endgroup]
+2026-09-06T18:20:51.8794330Z ##[error]Process completed with exit code 1.
+2026-09-06T18:20:51.8958848Z ##[group]Run {
+2026-09-06T18:20:51.8959153Z [36;1m{[0m
+2026-09-06T18:20:51.8959436Z [36;1m  echo "## Published LazyCodex smoke (windows-latest)"[0m
+2026-09-06T18:20:51.8959762Z [36;1m  echo[0m
+2026-09-06T18:20:51.8959965Z [36;1m  echo "| Field | Value |"[0m
+2026-09-06T18:20:51.8960225Z [36;1m  echo "| --- | --- |"[0m
+2026-09-06T18:20:51.8960472Z [36;1m  echo "| Result | \`failure\` |"[0m
+2026-09-06T18:20:51.8960756Z [36;1m  echo "| OS | \`windows-latest\` |"[0m
+2026-09-06T18:20:51.8961051Z [36;1m  echo "| Workflow | \`CI\` |"[0m
+2026-09-06T18:20:51.8961333Z [36;1m  echo "| Event | \`pull_request\` |"[0m
+2026-09-06T18:20:51.8961607Z [36;1m  echo "| Ref | \`1/merge\` |"[0m
+2026-09-06T18:20:51.8961844Z [36;1m  echo[0m
+2026-09-06T18:20:51.8962057Z [36;1m  echo "### What this job checks"[0m
+2026-09-06T18:20:51.8962302Z [36;1m  echo[0m
+2026-09-06T18:20:51.8962842Z [36;1m  echo "- Installs the published payloads through \`script/published-install-smoke.mjs\` into a sandbox \`CODEX_HOME\`."[0m
+2026-09-06T18:20:51.8963568Z [36;1m  echo "- Runs non-blocking smoke checks against \`lazycodex-ai@latest\`."[0m
+2026-09-06T18:20:51.8964232Z [36;1m  echo "- Verifies dry-run install and doctor command routing from an isolated temp directory, on the Linux leg only."[0m
+2026-09-06T18:20:51.8964747Z [36;1m  echo[0m
+2026-09-06T18:20:51.8964934Z [36;1m  echo "### If this fails"[0m
+2026-09-06T18:20:51.8965162Z [36;1m  echo[0m
+2026-09-06T18:20:51.8965552Z [36;1m  echo "Treat warnings as registry or alias drift signals; this job is intentionally non-blocking."[0m
+2026-09-06T18:20:51.8966031Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+2026-09-06T18:20:51.8981972Z shell: C:\Program Files\Git\bin\bash.EXE --noprofile --norc -e -o pipefail {0}
+2026-09-06T18:20:51.8982381Z ##[endgroup]
+2026-09-06T18:20:51.9635779Z Post job cleanup.
+2026-09-06T18:20:52.1644638Z [command]"C:\Program Files\Git\bin\git.exe" version
+2026-09-06T18:20:52.1917320Z git version 2.55.0.windows.5
+2026-09-06T18:20:52.1989150Z Temporarily overriding HOME='D:\a\_temp\ea9bd625-76a9-43de-a50f-d9e1f6abe6cd' before making global git config changes
+2026-09-06T18:20:52.1990020Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-06T18:20:52.1999847Z [command]"C:\Program Files\Git\bin\git.exe" config --global --add safe.directory D:\a\oh-my-openagent\oh-my-openagent
+2026-09-06T18:20:52.2310092Z Removing SSH command configuration
+2026-09-06T18:20:52.2326718Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp core\.sshCommand
+2026-09-06T18:20:52.2652063Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :\""
+2026-09-06T18:20:52.8310477Z Removing HTTP extra header
+2026-09-06T18:20:52.8320975Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-06T18:20:52.8664205Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "sh -c \"git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :\""
+2026-09-06T18:20:53.4387389Z Removing includeIf entries pointing to credentials config files
+2026-09-06T18:20:53.4398796Z [command]"C:\Program Files\Git\bin\git.exe" config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-06T18:20:53.4664402Z includeif.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git.path
+2026-09-06T18:20:53.4665413Z includeif.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git/worktrees/*.path
+2026-09-06T18:20:53.4666203Z includeif.gitdir:/github/workspace/.git.path
+2026-09-06T18:20:53.4666938Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T18:20:53.4707009Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git.path
+2026-09-06T18:20:53.4968352Z D:\a\_temp\git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:53.5014484Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git.path D\:\\a\\_temp\\git\-credentials\-c820ddb3\-7425\-457e\-8676\-5451745ae25f\.config
+2026-09-06T18:20:53.5369548Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git/worktrees/*.path
+2026-09-06T18:20:53.5628586Z D:\a\_temp\git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:53.5669798Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:D:/a/oh-my-openagent/oh-my-openagent/.git/worktrees/*.path D\:\\a\\_temp\\git\-credentials\-c820ddb3\-7425\-457e\-8676\-5451745ae25f\.config
+2026-09-06T18:20:53.5971486Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-09-06T18:20:53.6231018Z /github/runner_temp/git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:53.6273686Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-c820ddb3\-7425\-457e\-8676\-5451745ae25f\.config
+2026-09-06T18:20:53.6576051Z [command]"C:\Program Files\Git\bin\git.exe" config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-09-06T18:20:53.6830406Z /github/runner_temp/git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config
+2026-09-06T18:20:53.6875873Z [command]"C:\Program Files\Git\bin\git.exe" config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-c820ddb3\-7425\-457e\-8676\-5451745ae25f\.config
+2026-09-06T18:20:53.7171972Z [command]"C:\Program Files\Git\bin\git.exe" submodule foreach --recursive "git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-09-06T18:20:54.2878803Z Removing credentials config 'D:\a\_temp\git-credentials-c820ddb3-7425-457e-8676-5451745ae25f.config'
+2026-09-06T18:20:54.3083111Z Cleaning up orphan processes

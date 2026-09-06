@@ -1,0 +1,25 @@
+# filtered from the full 'bun test script/' output: failures, the summary, and every published-install-smoke line
+(fail) embedded manifest parity (darwin-arm64) > #given the darwin-arm64 sidecar payload #when embedded and probed #then the embedded set equals the expected parity set [4206.18ms]
+(fail) GitHub workflow job summaries > #given summary inputs #when the shared writer runs #then it emits the Markdown contract GitHub renders [2996.78ms]
+(fail) #given the generated Codex installer #when release versions are synchronized #then its embedded package version matches the root release version [17.39ms]
+(fail) publish.yml post-publish-verify registry readiness > #given the registry needs ~5 minutes to expose the version #when readiness polls #then it keeps waiting instead of failing a successful publish [2926.92ms]
+(fail) publish.yml post-publish-verify registry readiness > #given the registry never exposes the version #when the budget is exhausted #then it fails and names the publish-vs-propagation distinction [297.83ms]
+(fail) publish.yml prepare-release-state reuse decision > #given the 'release: vX' commit IS the base head #when prepare runs for vX #then it reuses that SHA without pushing [2004.30ms]
+(pass) published install smoke > #given an installed plugin without the composed ultrawork skill #when artifacts are checked #then the missing path is reported [10.97ms]
+(pass) published install smoke > #given a fully installed plugin #when artifacts are checked #then nothing is reported [22.55ms]
+(pass) published install smoke > #given both payload sources #when smoke args are parsed #then the package spec and tarball path are separated [2.07ms]
+(pass) published install smoke > #given specs carrying shell metacharacters #when they are checked #then none is accepted for packing [6.22ms]
+(pass) published install smoke > #given plain dist-tag and exact-version specs #when they are checked #then both are accepted [2.85ms]
+(fail) omo-ai payload verifier > #given a packed payload carrying every pinned artifact > #when the verifier runs > #then it passes with no missing-artifact error [1556.53ms]
+(fail) embedded manifest parity (darwin-arm64) > #given the darwin-arm64 sidecar payload #when embedded and probed #then the embedded set equals the expected parity set [4206.18ms]
+(fail) GitHub workflow job summaries > #given summary inputs #when the shared writer runs #then it emits the Markdown contract GitHub renders [2996.78ms]
+(fail) #given the generated Codex installer #when release versions are synchronized #then its embedded package version matches the root release version [17.39ms]
+(fail) publish.yml post-publish-verify registry readiness > #given the registry needs ~5 minutes to expose the version #when readiness polls #then it keeps waiting instead of failing a successful publish [2926.92ms]
+(fail) publish.yml post-publish-verify registry readiness > #given the registry never exposes the version #when the budget is exhausted #then it fails and names the publish-vs-propagation distinction [297.83ms]
+(fail) publish.yml prepare-release-state reuse decision > #given the 'release: vX' commit IS the base head #when prepare runs for vX #then it reuses that SHA without pushing [2004.30ms]
+(fail) omo-ai payload verifier > #given a packed payload carrying every pinned artifact > #when the verifier runs > #then it passes with no missing-artifact error [1556.53ms]
+ 449 pass
+ 8 skip
+ 7 fail
+Ran 464 tests across 82 files. [101.53s]
+EXIT=1

@@ -1,0 +1,16 @@
+bun test v1.3.14 (0d9b296a)
+
+script\published-install-smoke.test.ts:
+(pass) published install smoke > #given an installed plugin without the composed ultrawork skill #when artifacts are checked #then the missing path is reported [5.17ms]
+(pass) published install smoke > #given a fully installed plugin #when artifacts are checked #then nothing is reported [5.30ms]
+(pass) published install smoke > #given both payload sources #when smoke args are parsed #then the package spec and tarball path are separated [1.55ms]
+(pass) published install smoke > #given specs carrying shell metacharacters #when they are checked #then none is accepted for packing [1.60ms]
+(pass) published install smoke > #given plain dist-tag and exact-version specs #when they are checked #then both are accepted [0.84ms]
+(pass) published install smoke > #given a tarball packed beside the sandbox #when it is extracted #then the payload lands under the sandbox [145.72ms]
+(pass) published install smoke > #given a tarball handed in from outside the sandbox #when it is extracted #then the payload still lands under the sandbox [238.81ms]
+
+ 7 pass
+ 0 fail
+ 14 expect() calls
+Ran 7 tests across 1 file. [2.34s]
+EXIT=0
