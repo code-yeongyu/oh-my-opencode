@@ -34,4 +34,22 @@ describe("npm pack path reader", () => {
       expect(() => parseNpmPackPaths(raw)).toThrow("npm pack --json returned no packed file list")
     }
   })
+
+  test("#given output that is not JSON at all #when packed paths are read #then it fails naming npm pack rather than raising a bare SyntaxError", () => {
+    // given
+    const notJson = ["", "npm warn config production Use --omit=dev instead."]
+
+    // when / then
+    for (const raw of notJson) {
+      expect(() => parseNpmPackPaths(raw)).toThrow("npm pack --json did not return JSON")
+    }
+  })
+
+  test("#given a packed entry without a string path #when packed paths are read #then it fails naming the entry", () => {
+    // given
+    const rawEntry = JSON.stringify([{ id: "x", files: [{ path: "package.json" }, { size: 12 }] }])
+
+    // when / then
+    expect(() => parseNpmPackPaths(rawEntry)).toThrow("packed entry without a string path")
+  })
 })
