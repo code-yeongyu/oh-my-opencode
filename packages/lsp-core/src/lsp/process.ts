@@ -1,6 +1,6 @@
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import { delimiter, join, win32 } from "node:path";
 
 import { reportBestEffortCleanupError } from "./cleanup-errors.js";
 import { LspInvalidPathError, LspProcessSpawnError } from "./errors.js";
@@ -88,12 +88,21 @@ function wrap(proc: ChildProcess): SpawnedProcess {
 
 function killProcessTree(proc: ChildProcess, signal: NodeJS.Signals): void {
 	if (process.platform === "win32" && proc.pid) {
-		const result = spawnSync("taskkill", ["/pid", String(proc.pid), "/f", "/t"], {
-			stdio: "ignore",
-			windowsHide: true,
-		});
-		if (!result.error && result.status === 0) return;
-		if (result.error) reportKillError("windows process tree kill", result.error);
+		// Keep LSP independent of utils while enforcing the same absolute-root contract.
+		const taskkill = [process.env["SystemRoot"], process.env["WINDIR"]]
+			.filter((root): root is string => !!root && win32.isAbsolute(root) && win32.parse(root).root.length > 1)
+			.map(root => win32.join(root, "System32", "taskkill.exe"))
+			.find(path => existsSync(path));
+		if (taskkill) {
+			const result = spawnSync(taskkill, ["/pid", String(proc.pid), "/f", "/t"], {
+				stdio: "ignore",
+				windowsHide: true,
+			});
+			if (!result.error && result.status === 0) return;
+			if (result.error) reportKillError("windows process tree kill", result.error);
+		} else {
+			reportKillError("windows process tree kill", new Error("taskkill.exe was not found under an absolute SystemRoot or WINDIR"));
+		}
 	}
 
 	if (process.platform !== "win32" && proc.pid) {

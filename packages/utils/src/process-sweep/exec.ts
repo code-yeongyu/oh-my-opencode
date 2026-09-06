@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process"
 
 import { parsePosixProcessTable, parseWindowsProcessTable, type ProcessInfo } from "./process-table"
+import { resolveWindowsSystemToolExistent } from "../system-tool-paths"
 
 export interface ProcessKiller {
   readonly isAlive: (pid: number) => boolean | Promise<boolean>
@@ -36,7 +37,9 @@ function enumerateWindowsProcesses(): Promise<ProcessInfo[]> {
     "Select-Object ProcessId,ParentProcessId,CommandLine",
     "ConvertTo-Json -Compress -Depth 2",
   ].join(" | ")
-  return execFileText("powershell.exe", ["-NoProfile", "-Command", command]).then(parseWindowsProcessTable)
+  const tool = resolveWindowsSystemToolExistent("WindowsPowerShell\\v1.0\\powershell.exe")
+  if (!tool.found) return Promise.reject(new Error(tool.error))
+  return execFileText(tool.path, ["-NoProfile", "-Command", command]).then(parseWindowsProcessTable)
 }
 
 function createPosixKiller(): ProcessKiller {
@@ -73,8 +76,10 @@ function execFileText(command: string, args: readonly string[]): Promise<string>
   })
 }
 
-function execFileVoid(command: string, args: readonly string[]): Promise<void> {
-  return execFileText(command, args).then(() => undefined)
+function execFileVoid(toolRelativePath: string, args: readonly string[]): Promise<void> {
+  const tool = resolveWindowsSystemToolExistent(toolRelativePath)
+  if (!tool.found) return Promise.reject(new Error(tool.error))
+  return execFileText(tool.path, args).then(() => undefined)
 }
 
 function processKillErrorMeansAlive(error: Error): boolean {

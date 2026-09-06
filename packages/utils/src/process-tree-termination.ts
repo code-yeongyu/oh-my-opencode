@@ -1,5 +1,7 @@
 import { execFile } from "node:child_process"
 
+import { resolveWindowsSystemToolExistent } from "./system-tool-paths"
+
 export type ProcessTreeSignalTarget = "process" | "process-group" | "process-tree"
 export type ProcessTreeSignalOutcome = "denied" | "failed" | "missing" | "sent"
 
@@ -99,9 +101,13 @@ function attemptWindowsTreeSignal(
   pid: number,
   signal: "SIGKILL" | "SIGTERM",
 ): Promise<ProcessTreeSignalAttempt> {
+  const tool = resolveWindowsSystemToolExistent("taskkill.exe")
+  if (!tool.found) {
+    return Promise.resolve({ error: tool.error, outcome: "failed", pid, signal, target: "process-tree" })
+  }
   const args = ["/PID", String(pid), "/T", ...(signal === "SIGKILL" ? ["/F"] : [])]
   return new Promise((resolvePromise) => {
-    execFile("taskkill.exe", args, { timeout: 5_000, windowsHide: true }, (error) => {
+    execFile(tool.path, args, { timeout: 5_000, windowsHide: true }, (error) => {
       if (error === null) {
         resolvePromise({ outcome: "sent", pid, signal, target: "process-tree" })
         return

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { getHomeDirectory } from "./home-directory";
 import { findBashPath, findZshPath } from "./shell-path";
+import { resolveWindowsSystemToolExistent } from "../system-tool-paths";
 
 export interface CommandResult {
   exitCode: number;
@@ -155,13 +156,26 @@ export async function executeHookCommand(
         onComplete?.();
         return;
       }
-      const killer = spawn("taskkill", ["/PID", String(proc.pid), "/T", "/F"], {
+      const fallback = (message: string) => {
+        stderr += `\n${message}`;
+        try {
+          proc.kill("SIGKILL");
+        } catch (error) {
+          stderr += `\n${error instanceof Error ? error.message : String(error)}`;
+        }
+        onComplete?.();
+      };
+      const tool = resolveWindowsSystemToolExistent("taskkill.exe");
+      if (!tool.found) {
+        fallback(tool.error);
+        return;
+      }
+      const killer = spawn(tool.path, ["/PID", String(proc.pid), "/T", "/F"], {
         windowsHide: true,
         stdio: "ignore",
       });
-      const finish = () => onComplete?.();
-      killer.on("error", finish);
-      killer.on("close", finish);
+      killer.once("error", error => fallback(error.message));
+      killer.once("close", () => onComplete?.());
     };
 
     const killProcessGroup = (signal: NodeJS.Signals) => {
