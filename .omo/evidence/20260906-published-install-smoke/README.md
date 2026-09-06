@@ -23,6 +23,25 @@ against real published payloads with the sandbox the script creates itself.
 The job as it stands today cannot produce that RED at all: it only runs `--dry-run` commands, which
 never touch a payload.
 
+## Observed in CI on this branch
+
+`ci-run.log`, from the `lazycodex-published-smoke` job of run 34023407423:
+
+```
+published install smoke OK (1 plugin(s), .../omo/4.19.4)
+published install smoke passed for lazycodex-ai@latest
+published install smoke failed: npm run sync:skills failed ...
+published install smoke failed for lazycodex-ai@beta
+published install smoke OK (1 plugin(s), .../omo/4.19.4)
+published install smoke passed for oh-my-openagent@latest
+published install smoke failed: npm run sync:skills failed ...
+published install smoke failed for oh-my-openagent@beta
+```
+
+Both stable payloads install; both 5.0.0-beta.43 payloads fail, which is exactly the pair of defects
+the dry-run-only job shipped past. The first CI run of this step covered `@latest` only, which
+resolves to 4.19.4 and installs cleanly, so the beta tag was added and is smoked too.
+
 ## Why it is enough
 
 The RED input is the published tarball itself, so the smoke is proven against the exact artifact a
