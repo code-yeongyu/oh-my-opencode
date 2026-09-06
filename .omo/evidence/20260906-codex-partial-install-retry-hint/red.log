@@ -14,7 +14,7 @@ npm notice run node scripts/build.mjs
 (pass) runCliInstaller platform branching > runs OpenCode and Codex installation for platform=both [2.34ms]
 (pass) runCliInstaller platform branching > fails when Senpi-only installation cannot install Senpi [2.38ms]
 (pass) runCliInstaller platform branching > fails when Codex-only installation cannot install Codex [2.74ms]
-217 | 
+217 |
 218 |     // then
 219 |     const output = consoleLogMock.mock.calls.map((call) => call.join(" ")).join("\n")
 220 |     expect(result).toBe(0)
