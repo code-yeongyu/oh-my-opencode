@@ -205,7 +205,7 @@ export async function run(options) {
     const credentialsAfter = protectedDirs.map((dir) => credentialDigest(dir))
     rmSync(sandbox.root, { recursive: true, force: true })
     facts.cleanup = { exits: receipts, processScanExit: ps.status, survivors, sandboxRemoved: !existsSync(sandbox.root),
-      ownedTransport: "stdio pipes only, including fixture readiness fd 3; no driver server or socket", 
+      ownedTransport: "stdio pipes only, including fixture readiness fd 3; no driver server or socket",
       protectedCredentialsUnchanged: credentialsAfter.every((digest, i) => digest === credentialsBefore[i]),
       observationLimit: "Protected credential/config digest only; no claim of a whole-home audit." }
     facts.ok = !facts.error && facts.selection?.ok === true && ps.status === 0 && survivors.length === 0 && facts.cleanup.sandboxRemoved && facts.cleanup.protectedCredentialsUnchanged
