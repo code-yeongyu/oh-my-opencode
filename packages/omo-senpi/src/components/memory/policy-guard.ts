@@ -1,5 +1,5 @@
-import { lstatSync, readdirSync, realpathSync } from "@oh-my-opencode/memory-core/fs"
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path"
+import { lstatSync, realpathSync } from "@oh-my-opencode/memory-core/fs"
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path"
 
 import type { SenpiExtensionAPI } from "../../extension/types"
 import type { MemoryIdentityContext } from "./context"
@@ -63,7 +63,7 @@ function buildMemoryFilesystemPolicy(context: MemoryIdentityContext): Filesystem
   const agentsRoot = dirname(ownRoot)
   const ownRoots = stableRoots([ownRoot])
   const agentsRoots = stableRoots([agentsRoot])
-  const deniedRoots = foreignIdentityRoots(agentsRoot, context.identity)
+  const deniedRoots: readonly string[] = []
 
   return {
     deniedRoots,
@@ -78,16 +78,6 @@ function buildMemoryFilesystemPolicy(context: MemoryIdentityContext): Filesystem
       }
       return { allow: true }
     },
-  }
-}
-
-function foreignIdentityRoots(agentsRoot: string, ownIdentity: string): string[] {
-  try {
-    const entries = readdirSync(agentsRoot, { withFileTypes: true })
-    return stableRoots(entries.filter((entry) => entry.name !== ownIdentity).map((entry) => join(agentsRoot, entry.name)))
-  } catch (error) {
-    if (isMissingPathError(error)) return []
-    throw error
   }
 }
 

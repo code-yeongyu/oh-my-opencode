@@ -1,3 +1,7 @@
+## 2026-09-06 — Avoid agents-root enumeration in memory confinement
+
+Memory guards now deny the complete `memory/agents` root and explicitly allow only the bound identity, avoiding `readdirSync` of a potentially TCC-protected parent while preserving own-memory access and denying sibling identities.
+
 ## 2026-09-05 — Name `tool.monitor` in the ultrawork directive and drop the polling loop
 
 The Waiting discipline section of `skills/ultrawork/SKILL.md` told the model that

@@ -1,5 +1,5 @@
-import { lstatSync, readdirSync, realpathSync } from "@oh-my-opencode/memory-core/fs"
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path"
+import { lstatSync, realpathSync } from "@oh-my-opencode/memory-core/fs"
+import { basename, dirname, isAbsolute, relative, resolve } from "node:path"
 
 import type { ToolCallEventResult } from "@code-yeongyu/senpi"
 
@@ -146,18 +146,7 @@ function extractPatchDirectivePaths(patch: string): string[] {
 function resolveGuardRoots(context: MemoryIdentityContext): GuardRoots {
   const ownRoot = resolve(context.identityPaths.root)
   const agentsRoot = dirname(ownRoot)
-  const foreignRoots: string[] = []
-
-  try {
-    for (const entry of readdirSync(agentsRoot, { withFileTypes: true })) {
-      if (entry.name === context.identity) continue
-      foreignRoots.push(join(agentsRoot, entry.name))
-    }
-  } catch (error) {
-    if (!isMissingPathError(error)) throw error
-  }
-
-  return { agentsRoot, ownRoot, foreignRoots }
+  return { agentsRoot, ownRoot, foreignRoots: [] }
 }
 
 function isForbiddenTarget(rawPath: string, cwd: string, roots: GuardRoots, recursive: boolean): boolean {
@@ -166,13 +155,10 @@ function isForbiddenTarget(rawPath: string, cwd: string, roots: GuardRoots, recu
   const candidates = uniquePaths([lexical, canonicalizeFromNearestExisting(lexical)])
   const agentsRoots = uniquePaths([roots.agentsRoot, canonicalizeFromNearestExisting(roots.agentsRoot)])
   const ownRoots = uniquePaths([roots.ownRoot, canonicalizeFromNearestExisting(roots.ownRoot)])
-  const foreignRoots = uniquePaths(roots.foreignRoots.flatMap((root) => [root, canonicalizeFromNearestExisting(root)]))
-
   for (const candidate of candidates) {
     if (ownRoots.some((root) => isWithin(root, candidate))) continue
     if (agentsRoots.some((root) => candidate === root)) return true
     if (recursive && agentsRoots.some((root) => isWithin(candidate, root))) return true
-    if (foreignRoots.some((root) => isWithin(root, candidate))) return true
   }
   return false
 }
@@ -213,7 +199,7 @@ function adviseBashOnce(
   const command = event.input.command
   if (typeof command !== "string") return
 
-  const forbiddenLiterals = [roots.agentsRoot, ...roots.foreignRoots]
+  const forbiddenLiterals = [roots.agentsRoot]
   if (!forbiddenLiterals.some((root) => command.includes(root))) return
 
   const sessionId = readSessionId(eventContext)

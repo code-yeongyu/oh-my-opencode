@@ -117,6 +117,16 @@ describe("memory filesystem policy guard", () => {
     expect(deniedRoots).not.toContain(resolve(setup.own.identityPaths.root))
   })
 
+  test("#given an agents root whose directory enumeration would be EPERM #when registration runs #then registration does not enumerate and own access remains usable", async () => {
+    const setup = fixture()
+    registerMemoryFilesystemPolicy(setup.pi, setup.own)
+    const policy = registeredPolicy(setup)
+
+    expect(registeredPolicy(setup).deniedRoots).toEqual([])
+    expect(await check(policy, "read", canonical(setup.ownRepoFile))).toEqual({ allow: true })
+    expect(await check(policy, "enumerate", canonical(setup.agentsRoot), "ls")).toMatchObject({ allow: false })
+  })
+
   test("#given the registered policy #when read and write target a foreign identity file #then both are denied with the stable reason", async () => {
     const setup = fixture()
     registerMemoryFilesystemPolicy(setup.pi, setup.own)
