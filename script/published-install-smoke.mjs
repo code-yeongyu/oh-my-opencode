@@ -32,10 +32,14 @@ export function parseSmokeArgs(argv) {
 
 // Windows cannot spawn npm.cmd without a shell, and a shell turns the spec into a command line, so
 // the spec is constrained to a package specifier before it is ever passed down.
-const PACKAGE_SPEC_PATTERN = /^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(?:@[\w.^~*>=<|-]+)?$/i
+const PACKAGE_SPEC_PATTERN = /^(?:@[a-z0-9][\w.-]*\/)?[a-z0-9][\w.-]*(?:@[\w.-]+)?$/i
+
+export function isSupportedPackageSpec(packageSpec) {
+  return PACKAGE_SPEC_PATTERN.test(packageSpec)
+}
 
 function packPublishedTarball(packageSpec, workingDirectory) {
-  if (!PACKAGE_SPEC_PATTERN.test(packageSpec)) {
+  if (!isSupportedPackageSpec(packageSpec)) {
     throw new Error(`refusing to pack an unrecognized package spec: ${packageSpec}`)
   }
   execFileSync("npm", ["pack", packageSpec, "--silent"], {
