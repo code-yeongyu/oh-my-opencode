@@ -143,7 +143,8 @@ async function validateExistingOwner(
 		if (isProcessAlive(owner.pid)) throw new DaemonStartupDeferredError("owner_pid_live_unreachable");
 		const reread = readDaemonOwner(paths);
 		const endpoint = endpointIdentity(owner.endpoint.path);
-		if (!reread || reread.nonce !== owner.nonce || !sameEndpoint(endpoint, owner.endpoint)) {
+		const endpointRebound = endpoint.kind !== "missing" && !sameEndpoint(endpoint, owner.endpoint);
+		if (!reread || reread.nonce !== owner.nonce || endpointRebound) {
 			throw new DaemonStartupDeferredError("owner_changed_during_cleanup");
 		}
 		cleanupDeadOwner(paths, owner);
