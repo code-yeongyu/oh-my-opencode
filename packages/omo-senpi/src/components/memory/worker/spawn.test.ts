@@ -203,3 +203,85 @@ describe("worker senpi prefix args", () => {
     expect(prepared.args[0]).toBe(PREFIX_MARKER)
   })
 })
+
+describe("worker child_extensions forwarding", () => {
+  function baseInput(base: string) {
+    return {
+      run,
+      worktree: {
+        dir: base,
+        commonConfigPath: join(base, "config"),
+      } as unknown as ReflectionWorktree,
+      reflectionSessionsDir: join(base, "sessions"),
+      category: "quick",
+      model: "provider/model",
+      env: {},
+      mergePolicy: "auto" as const,
+      skillsUsageSource: join(base, "skills.json"),
+      memoryUsageSource: join(base, "memory-usage.json"),
+      dreamStateSource: join(base, "dream.json"),
+      peoplePolicy: { enabled: true, max_entries: 40, max_entry_chars: 200 },
+      senpiCommand: "/custom/senpi",
+    }
+  }
+
+  test("#given childExtensions #when a reflection spawn is prepared #then each path becomes an -e entry after --no-extensions", async () => {
+    const prepared = await prepareReflectionSpawn({
+      ...baseInput(await root()),
+      childExtensions: ["/ext/auth.js", "/ext/provider.js"],
+    })
+
+    const noExt = prepared.args.indexOf("--no-extensions")
+    const noSkills = prepared.args.indexOf("--no-skills")
+    expect(noExt).toBeGreaterThan(-1)
+    expect(prepared.args.slice(noExt + 1, noSkills)).toEqual([
+      "-e", "/ext/auth.js",
+      "-e", "/ext/provider.js",
+    ])
+  })
+
+  test("#given no childExtensions #when a reflection spawn is prepared #then argv is unchanged", async () => {
+    const prepared = await prepareReflectionSpawn(baseInput(await root()))
+
+    expect(prepared.args.indexOf("-e")).toBe(-1)
+    expect(prepared.args.indexOf("--no-extensions")).toBeGreaterThan(-1)
+  })
+
+  test("#given childExtensions on the runner input #when prepareReflectionCandidateSpawn builds the spawn #then they are forwarded", async () => {
+    const base = await root()
+    const prepared = await prepareReflectionCandidateSpawn({
+      run,
+      worktree: {
+        dir: base,
+        commonConfigPath: join(base, "config"),
+      } as unknown as ReflectionWorktree,
+      mergePolicy: "auto",
+      category: "quick",
+      candidate: { model: "provider/model" },
+      attempt: 1,
+      hardDeadlineAt: Date.now() + 10_000,
+      config: loadedMemoryConfig(memorySettings()).config,
+      identity: { id: "agent-test", safeSlug: "agent-test", paths: buildIdentityPaths(base, "agent-test") },
+      env: {},
+      senpiCommand: "/custom/senpi",
+      childExtensions: ["/ext/auth.js"],
+    })
+
+    const noExt = prepared.args.indexOf("--no-extensions")
+    expect(prepared.args.slice(noExt + 1, noExt + 3)).toEqual(["-e", "/ext/auth.js"])
+  })
+
+  test("#given childExtensions #when a fork spawn is prepared #then discovery stays enabled and no -e is added", async () => {
+    // Fork mode does not pass --no-extensions, so discovered settings.json extensions already
+    // load; re-adding -e entries would double-load them.
+    const base = await root()
+    const prepared = await prepareReflectionForkSpawn({
+      ...baseInput(base),
+      parentSessionFile: join(base, "parent.jsonl"),
+      childExtensions: ["/ext/auth.js"],
+    })
+
+    expect(prepared.args.indexOf("--no-extensions")).toBe(-1)
+    expect(prepared.args.indexOf("-e")).toBe(-1)
+  })
+})

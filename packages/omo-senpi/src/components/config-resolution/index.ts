@@ -8,6 +8,12 @@ import {
   type OmoModelReferenceDiagnostic,
 } from "@oh-my-opencode/omo-config-core"
 
+export {
+  resolveChildExtensions,
+  resolveInheritedChildExtensions,
+  type ResolveChildExtensionsOptions,
+} from "./child-extensions"
+
 export type SenpiConfigDiagnostic = OmoConfigDiagnostic | OmoModelReferenceDiagnostic
 
 export type SenpiOmoConfigResult = Omit<LoadOmoConfigResult, "config" | "diagnostics"> & {

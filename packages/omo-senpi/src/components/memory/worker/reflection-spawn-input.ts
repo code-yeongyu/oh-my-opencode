@@ -23,6 +23,8 @@ type ReflectionSpawnInput = {
   readonly env: NodeJS.ProcessEnv
   readonly senpiCommand?: string
   readonly senpiPrefixArgs?: readonly string[]
+  /** Resolved `child_extensions` config paths forwarded as `-e` entries to the child. */
+  readonly childExtensions?: readonly string[]
 }
 
 export function prepareReflectionCandidateSpawn(input: ReflectionSpawnInput) {
@@ -64,5 +66,6 @@ export function prepareReflectionCandidateSpawn(input: ReflectionSpawnInput) {
     systemTokenTarget: Math.floor(MEMORY_PRESSURE_SOFT_RATIO * systemTokenBudget),
     senpiCommand: input.senpiCommand,
     senpiPrefixArgs: input.senpiPrefixArgs,
+    ...(input.childExtensions === undefined ? {} : { childExtensions: input.childExtensions }),
   })
 }

@@ -117,6 +117,7 @@ describe("task child memory tool exclusion", () => {
       runtime: new TaskRuntimeContext(cwd),
       sharedParentTools: () => [],
       settings: OmoTaskSettingsSchema.parse({}),
+      inheritedExtensions: [],
     })
 
     // then

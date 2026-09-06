@@ -11,6 +11,7 @@ import { spawn } from "node:child_process"
 import type { OmoConfig } from "@oh-my-opencode/omo-config-core"
 import type { SenpiModelPort, SenpiModelRegistryPort } from "@oh-my-opencode/senpi-task"
 
+import { resolveChildExtensions } from "../../config-resolution"
 import { resolveSenpiLaunch } from "../worker/senpi-command"
 import { resolveReflectionModel } from "../worker/resolve-model"
 
@@ -83,11 +84,15 @@ export function createPeopleAskRunner(options: PeopleAskOptions): PeopleAskRunne
     const resolution = resolveReflectionModel(QUICK_CATEGORY, options.config, options.registry)
     if (resolution.kind !== "resolved") return ABSTENTION_LINE
     const env = options.env ?? process.env
+    // `--no-extensions` disables discovery only; config `child_extensions` still load via -e
+    // so a required auth/provider extension is present in this child too.
+    const childExtensions = resolveChildExtensions(options.config)
     const args = [
       "-p",
       "--system-prompt", PERSONA,
       "--tools", "none",
       "--no-extensions",
+      ...childExtensions.flatMap((path) => ["-e", path]),
       "--no-skills",
       "--no-prompt-templates",
       "--no-context-files",

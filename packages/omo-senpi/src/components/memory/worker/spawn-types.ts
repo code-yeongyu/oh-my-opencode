@@ -86,5 +86,12 @@ export interface PrepareReflectionSpawnInput {
   readonly systemTokenTarget?: number
   readonly senpiCommand?: string
   readonly senpiPrefixArgs?: readonly string[]
+  /**
+   * Extension paths the child must still load despite `--no-extensions`: each becomes an
+   * explicit `-e`/`--extension` argv entry (senpi disables only discovery under that flag).
+   * Sourced from `child_extensions` config; used by auth/provider extensions that must be
+   * present for the child to reach its model.
+   */
+  readonly childExtensions?: readonly string[]
   readonly chmodFile?: (path: string, mode: number) => Promise<void>
 }

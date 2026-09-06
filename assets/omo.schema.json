@@ -1314,14 +1314,6 @@
           "type": "string",
           "minLength": 1
         },
-        "tool_exposure": {
-          "default": "direct",
-          "type": "string",
-          "enum": [
-            "direct",
-            "search"
-          ]
-        },
         "reflection": {
           "default": {
             "enabled": true,
@@ -1844,7 +1836,6 @@
       "required": [
         "enabled",
         "agent",
-        "tool_exposure",
         "reflection",
         "nudge",
         "facts",
@@ -1872,6 +1863,13 @@
         "enabled"
       ],
       "additionalProperties": false
+    },
+    "child_extensions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "[opencode]": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -12998,13 +12996,6 @@
               "type": "string",
               "minLength": 1
             },
-            "tool_exposure": {
-              "type": "string",
-              "enum": [
-                "direct",
-                "search"
-              ]
-            },
             "reflection": {
               "type": "object",
               "properties": {
@@ -13405,6 +13396,13 @@
             }
           },
           "additionalProperties": false
+        },
+        "child_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "additionalProperties": false
@@ -14625,13 +14623,6 @@
               "type": "string",
               "minLength": 1
             },
-            "tool_exposure": {
-              "type": "string",
-              "enum": [
-                "direct",
-                "search"
-              ]
-            },
             "reflection": {
               "type": "object",
               "properties": {
@@ -15032,6 +15023,13 @@
             }
           },
           "additionalProperties": false
+        },
+        "child_extensions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "additionalProperties": false
@@ -16258,13 +16256,6 @@
                 "type": "string",
                 "minLength": 1
               },
-              "tool_exposure": {
-                "type": "string",
-                "enum": [
-                  "direct",
-                  "search"
-                ]
-              },
               "reflection": {
                 "type": "object",
                 "properties": {
@@ -16665,6 +16656,13 @@
               }
             },
             "additionalProperties": false
+          },
+          "child_extensions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           },
           "[opencode]": {
             "$schema": "http://json-schema.org/draft-07/schema#",
@@ -27791,13 +27789,6 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "tool_exposure": {
-                    "type": "string",
-                    "enum": [
-                      "direct",
-                      "search"
-                    ]
-                  },
                   "reflection": {
                     "type": "object",
                     "properties": {
@@ -28198,6 +28189,13 @@
                   }
                 },
                 "additionalProperties": false
+              },
+              "child_extensions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
               }
             },
             "additionalProperties": false
@@ -29418,13 +29416,6 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "tool_exposure": {
-                    "type": "string",
-                    "enum": [
-                      "direct",
-                      "search"
-                    ]
-                  },
                   "reflection": {
                     "type": "object",
                     "properties": {
@@ -29825,6 +29816,13 @@
                   }
                 },
                 "additionalProperties": false
+              },
+              "child_extensions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
               }
             },
             "additionalProperties": false

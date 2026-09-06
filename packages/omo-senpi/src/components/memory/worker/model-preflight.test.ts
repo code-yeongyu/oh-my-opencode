@@ -393,4 +393,57 @@ control.once("error", () => process.exit(0))
     expect(result).toEqual({ kind: "filtered", candidates: headerless, rejected: [] })
   })
 
+  test("#given child extensions #when the catalog probe runs #then each path is re-added as an -e entry after --no-extensions", async () => {
+    // given
+    const item = await fixture(`
+import { appendFileSync } from "node:fs"
+appendFileSync(process.env.ARGV_LOG, JSON.stringify(process.argv.slice(2)) + "\\n")
+process.stdout.write("builtin/fallback\\n")
+`)
+    const argvLog = join(item.root, "argv.log")
+
+    // when
+    const result = await preflightMemoryModels({
+      candidates,
+      launch: item.launch,
+      env: { PATH: process.env.PATH, ARGV_LOG: argvLog },
+      extensions: ["/ext/auth.js", "/ext/provider.js"],
+      configSources: [{ path: item.config, exists: true }],
+    })
+
+    // then
+    expect(result.kind).toBe("filtered")
+    const argv = JSON.parse((await Bun.file(argvLog).text()).trim()) as string[]
+    const noExt = argv.indexOf("--no-extensions")
+    const noSkills = argv.indexOf("--no-skills")
+    expect(noExt).toBeGreaterThan(-1)
+    expect(argv.slice(noExt + 1, noSkills)).toEqual([
+      "-e", "/ext/auth.js",
+      "-e", "/ext/provider.js",
+    ])
+  })
+
+  test("#given a different extension list #when preflight repeats #then the catalog is re-probed instead of reusing the cache", async () => {
+    // given
+    const item = await fixture(`
+import { appendFileSync } from "node:fs"
+appendFileSync(process.env.PROBE_LOG, "probe\\n")
+process.stdout.write("builtin/fallback\\n")
+`)
+    const probeLog = join(item.root, "probes.log")
+    const input = {
+      candidates,
+      launch: item.launch,
+      env: { PATH: process.env.PATH, PROBE_LOG: probeLog },
+      configSources: [{ path: item.config, exists: true }],
+    }
+
+    // when
+    await preflightMemoryModels(input)
+    await preflightMemoryModels({ ...input, extensions: ["/ext/auth.js"] })
+
+    // then
+    expect(await Bun.file(probeLog).text()).toBe("probe\nprobe\n")
+  })
+
 })
