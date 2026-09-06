@@ -208,7 +208,7 @@ describe("install-codex", () => {
     expect(legacyCacheMissing).toBe(true)
   }, { timeout: INSTALL_CODEX_INTEGRATION_TEST_TIMEOUT_MS })
 
-  test("#given codex installer #when installing omo #then seeds OMO SOT through local migration script", async () => {
+  test("#given codex installer #when installing omo #then never spawns a repo script that is not shipped", async () => {
     // given
     const codexHome = await mkdtemp(join(tmpdir(), "omo-codex-home-sot-"))
     const binDir = await mkdtemp(join(tmpdir(), "omo-codex-bin-sot-"))
@@ -229,10 +229,16 @@ describe("install-codex", () => {
     })
 
     // then
-    const sotInvocation = invocations.find((invocation) => invocation.args.some((arg) => arg.endsWith("migrate-omo-sot.mjs")))
-    expect(sotInvocation?.command).toBe(process.execPath)
-    expect(sotInvocation?.args).toContain("--seed")
-    expect(sotInvocation?.home).toBe(home)
+    const spawnedScripts = invocations
+      .filter((invocation) => invocation.command === process.execPath)
+      .map((invocation) => invocation.args[0] ?? "")
+      .filter((argument) => argument.endsWith(".mjs") || argument.endsWith(".js"))
+    const missingScripts: string[] = []
+    for (const scriptPath of spawnedScripts) {
+      const exists = await stat(scriptPath).then(() => true, () => false)
+      if (!exists) missingScripts.push(scriptPath)
+    }
+    expect(missingScripts).toEqual([])
   }, { timeout: INSTALL_CODEX_INTEGRATION_TEST_TIMEOUT_MS })
 
   test("#given repoRoot without root CLI dist #when installing omo #then warns about the skipped omo runtime wrapper", async () => {
