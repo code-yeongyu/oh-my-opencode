@@ -1,13 +1,16 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test"
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises"
+import { afterAll, describe, expect, test } from "bun:test"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { findMissingInstalledArtifacts, isSupportedPackageSpec, parseSmokeArgs } from "./published-install-smoke.mjs"
 
+const createdPluginPaths: string[] = []
+
 async function createInstalledPlugin(options: { readonly withUltraworkSkill: boolean }): Promise<string> {
   const pluginPath = await mkdtemp(join(tmpdir(), "omo-smoke-plugin-"))
+  createdPluginPaths.push(pluginPath)
   await mkdir(join(pluginPath, ".codex-plugin"), { recursive: true })
   await writeFile(join(pluginPath, ".codex-plugin", "plugin.json"), "{}")
   await writeFile(join(pluginPath, "package.json"), "{}")
@@ -17,6 +20,12 @@ async function createInstalledPlugin(options: { readonly withUltraworkSkill: boo
   }
   return pluginPath
 }
+
+afterAll(async () => {
+  for (const pluginPath of createdPluginPaths) {
+    await rm(pluginPath, { recursive: true, force: true })
+  }
+})
 
 describe("published install smoke", () => {
   test("#given an installed plugin without the composed ultrawork skill #when artifacts are checked #then the missing path is reported", async () => {
