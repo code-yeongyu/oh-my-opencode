@@ -114,7 +114,7 @@ describe("runSenpiInstaller", () => {
     const settings = await readSettings(agentDir)
     expect(first.agentDir).toBe(agentDir)
     expect(second.pluginPath).toBe(pluginPath)
-    expect(settings.packages).toEqual([pluginPath])
+    expect(settings.packages).toEqual([])
     expect(await backupFiles(agentDir)).toHaveLength(2)
   })
 
@@ -138,7 +138,7 @@ describe("runSenpiInstaller", () => {
     const settings = await readSettings(agentDir)
     expect(settings.theme).toBe("dark")
     expect(settings.nested).toEqual({ enabled: true })
-    expect(settings.packages).toEqual(["keep-me", pluginPath])
+    expect(settings.packages).toEqual(["keep-me"])
     expect(await backupFiles(agentDir)).toHaveLength(1)
   })
 
@@ -165,7 +165,7 @@ describe("runSenpiInstaller", () => {
 
     // then
     const settings = await readSettings(agentDir)
-    expect(settings.packages).toEqual(["keep-me", pluginPath])
+    expect(settings.packages).toEqual(["keep-me"])
   })
 
   test("#given a Windows packed runtime with a POSIX manifest mode #when installing #then matching content passes integrity", async () => {
@@ -185,7 +185,7 @@ describe("runSenpiInstaller", () => {
 
     // then
     expect(result.ok).toBe(true)
-    expect(await readSettings(agentDir)).toEqual({ packages: [pluginPath] })
+    expect(await readSettings(agentDir)).toEqual({ packages: [] })
   })
 
   test("#given a POSIX packed runtime with a mismatched manifest mode #when installing #then integrity fails", async () => {

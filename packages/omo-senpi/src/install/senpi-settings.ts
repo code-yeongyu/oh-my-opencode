@@ -47,17 +47,18 @@ export function removeLegacyBuiltinShadows(
   return packages.filter((entry) => !shadowPaths.has(resolve(agentDir, entry)))
 }
 
-export async function removeSupersededOmoPackages(
+export async function removeOmoPackages(
   packages: readonly string[],
-  currentPluginPath: string,
   agentDir: string,
 ): Promise<string[]> {
-  const currentPath = resolve(currentPluginPath)
   const entries = await Promise.all(
     packages.map(async (entry) => {
       const packagePath = resolve(agentDir, entry)
-      if (packagePath === currentPath) return currentPath
-      return (await readPackageName(packagePath)) === OMO_SENPI_PACKAGE_NAME ? undefined : entry
+      const name = await readPackageName(packagePath)
+      if (name === OMO_SENPI_PACKAGE_NAME) return undefined
+      const basename = packagePath.split(/[\\/]/).pop() ?? ""
+      if (name === undefined && /^omo-senpi-cli-plugin-[A-Za-z0-9]{6}$/.test(basename)) return undefined
+      return entry
     }),
   )
   return entries.filter((entry): entry is string => entry !== undefined)

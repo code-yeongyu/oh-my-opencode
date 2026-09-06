@@ -75,7 +75,7 @@ describe("runSenpiInstaller source refresh", () => {
     await runSenpiInstaller({ agentDir, repoRoot, pluginPath })
 
     // then
-    expect(await settingsPackages(agentDir)).toEqual(["keep-me", pluginPath])
+    expect(await settingsPackages(agentDir)).toEqual(["keep-me"])
   })
 
   test("#given current and stale OMO entries #when refreshing #then the current package keeps its precedence", async () => {
@@ -92,6 +92,6 @@ describe("runSenpiInstaller source refresh", () => {
     await runSenpiInstaller({ agentDir, repoRoot, pluginPath })
 
     // then
-    expect(await settingsPackages(agentDir)).toEqual(["before", pluginPath, "after"])
+    expect(await settingsPackages(agentDir)).toEqual(["before", "after"])
   })
 })

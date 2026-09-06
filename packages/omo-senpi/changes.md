@@ -436,3 +436,15 @@ value, so they all follow the session.
 
 Keep the fallback until the minimum supported Senpi guarantees `cwd`, and keep resolving the cwd
 ONCE at register: re-reading it later would let a session's store move mid-flight.
+## 2026-09-06 — Keep local plugin launcher-only
+
+The local installer no longer persists the omo-senpi plugin path in
+`settings.json`. It removes existing omo-senpi package entries before writing
+settings and leaves the launcher as the sole plugin registration point, so a
+stale skill root cannot survive as a duplicate loaded package. Unrelated
+package entries and their order remain unchanged.
+
+Future installers must preserve the launcher-only invariant: the generated
+launcher supplies the canonical plugin path, while settings must not retain an
+omo-senpi package entry.
+

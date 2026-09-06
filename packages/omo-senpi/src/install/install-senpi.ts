@@ -13,7 +13,7 @@ import {
   readPackages,
   readSettings,
   removeLegacyBuiltinShadows,
-  removeSupersededOmoPackages,
+  removeOmoPackages,
   type SettingsRecord,
   writeSettingsAtomically,
 } from "./senpi-settings"
@@ -45,27 +45,24 @@ export interface SenpiInstallResult {
 export async function runSenpiInstaller(options: SenpiInstallOptions = {}): Promise<SenpiInstallResult> {
   const context = resolveInstallContext(options)
   await ensurePluginArtifacts(context)
+  // Claim the launcher before any settings mutation: a foreign owner must fail atomically.
+  const launcherPath = installLocalLauncher({
+    pluginPath: context.pluginPath,
+    senpiCliPath: join(context.repoRoot, "packages", "coding-agent", "dist", "cli.js"),
+  })
+  if (launcherPath === undefined) throw new Error("Cannot install omo-senpi: local omo launcher is owned by another application")
   const settings = await readSettings(context.settingsPath)
   const before = JSON.stringify(settings)
-  const packages = dedupePackages(await removeSupersededOmoPackages(
+  const packages = dedupePackages(await removeOmoPackages(
     removeLegacyBuiltinShadows(
       dedupePackages(readPackages(settings)),
       context.repoRoot,
       context.agentDir,
     ),
-    context.pluginPath,
     context.agentDir,
   ))
-  if (!packages.includes(context.pluginPath)) packages.push(context.pluginPath)
   settings.packages = packages
   const backupPath = await writeSettingsAtomically(context.settingsPath, settings)
-  // The local route runs the user's own engine checkout, so it needs the same launcher the
-  // published package ships; without it this install would boot unbranded.
-  installLocalLauncher({
-    pluginPath: context.pluginPath,
-    senpiCliPath: join(context.repoRoot, "packages", "coding-agent", "dist", "cli.js"),
-  })
-
   return {
     ok: true,
     action: "install",
