@@ -1,6 +1,6 @@
 
- 2707 pass
+ 2719 pass
  32 skip
  0 fail
- 8548 expect() calls
-Ran 2739 tests across 360 files. [239.30s]
+ 8574 expect() calls
+Ran 2751 tests across 360 files. [264.05s]
