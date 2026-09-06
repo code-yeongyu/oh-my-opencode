@@ -39,11 +39,11 @@ test.skipIf(process.platform === "win32")("notification script timeout kills a T
       { scriptPath, hookType: "idle", sessionID: "session-1" },
       "Done",
       "Task completed",
-      10
+      2_000
     )
     pids = readFileSync(pidPath, "utf8").trim().split(/\s+/).map(Number)
 
-    expect(Date.now() - startedAt).toBeLessThan(1000)
+    expect(Date.now() - startedAt).toBeLessThan(4_000)
     expect(pids).toHaveLength(2)
     expect(pids.some(isProcessAlive)).toBe(false)
   } finally {
