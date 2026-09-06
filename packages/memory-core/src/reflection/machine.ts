@@ -1,4 +1,9 @@
-import { countCompletedSteps, type ReflectionSnapshot, type ReflectionTranscriptState } from "../journal"
+import {
+  REFLECTION_SNAPSHOT_MAX_BYTES,
+  countCompletedSteps,
+  type ReflectionSnapshot,
+  type ReflectionTranscriptState,
+} from "../journal"
 
 export type ReflectionTrigger = "step-count" | "compaction" | "manual" | "dream"
 export type DreamOrigin = "manual" | "idle" | "shutdown" | "pressure"
@@ -14,6 +19,8 @@ export type ReflectionOutcome =
 export interface TriggerConfig {
   readonly stepCount?: number
   readonly onCompaction?: boolean
+  /** Backlog byte budget; a transcript past it triggers reflection even below the step threshold. */
+  readonly snapshotMaxBytes?: number
 }
 
 export interface JournalSnapshot {
@@ -121,12 +128,22 @@ export function evaluateTransitions(state: MachineState, event: ReflectionEvent)
   }
 
   const threshold = state.config.stepCount
+  const stepCountFree = !containsTrigger(state.reservation, "step-count")
   const thresholdReady =
     threshold !== undefined &&
     threshold > 0 &&
     state.journal.state.steps_since_last_successful_reflection >= threshold &&
-    !containsTrigger(state.reservation, "step-count")
-  return thresholdReady
+    stepCountFree
+  if (thresholdReady) {
+    return { state, action: { kind: "reserve", request: makeRequest(state.journal, "step-count") } }
+  }
+
+  // Byte pressure is its own trigger: a few very large steps overflow the payload budget long
+  // before the step threshold fires, and each capture only drains one budget's worth.
+  const budget = state.config.snapshotMaxBytes ?? REFLECTION_SNAPSHOT_MAX_BYTES
+  const backlogReady =
+    budget > 0 && (state.journal.state.unreflected_bytes ?? 0) >= budget && stepCountFree
+  return backlogReady
     ? { state, action: { kind: "reserve", request: makeRequest(state.journal, "step-count") } }
     : { state, action: { kind: "none" } }
 }
@@ -251,7 +268,13 @@ function isStillTriggered(
     return config.onCompaction === true && request.conversationIds.some((id) => journals.get(id)?.state.pending_compaction === true)
   }
   const threshold = config.stepCount
-  return threshold !== undefined && threshold > 0 && request.conversationIds.some(
-    (id) => (journals.get(id)?.state.steps_since_last_successful_reflection ?? 0) >= threshold,
-  )
+  const budget = config.snapshotMaxBytes ?? REFLECTION_SNAPSHOT_MAX_BYTES
+  return request.conversationIds.some((id) => {
+    const journalState = journals.get(id)?.state
+    if (!journalState) return false
+    if (threshold !== undefined && threshold > 0 && journalState.steps_since_last_successful_reflection >= threshold) {
+      return true
+    }
+    return budget > 0 && (journalState.unreflected_bytes ?? 0) >= budget
+  })
 }
