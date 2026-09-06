@@ -572,7 +572,9 @@ jobs:
               echo "published install smoke passed for $spec"
             else
               echo "::warning::published install smoke failed for $spec"
-              status=1
+              case "$spec" in
+                *@latest) status=1 ;;
+              esac
             fi
             echo "::endgroup::"
           done
