@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url"
  * payload under test.
  */
 const verifierSource = fileURLToPath(new URL("./verify-omo-ai-payload.mjs", import.meta.url))
+const npmInvocationSource = fileURLToPath(new URL("./npm-invocation.mjs", import.meta.url))
 const guardTimeoutMs = 120_000
 
 setDefaultTimeout(guardTimeoutMs)
@@ -53,7 +54,8 @@ function runVerifierOnPayload(payloadPaths: readonly string[]): VerifierRun {
   const fakeRepoRoot = mkdtempSync(join(tmpdir(), "omo-ai-payload-guard-"))
   try {
     mkdirSync(join(fakeRepoRoot, "script"), { recursive: true })
-    copyFileSync(verifierSource, join(fakeRepoRoot, "script", "verify-omo-ai-payload.mjs"))
+  copyFileSync(verifierSource, join(fakeRepoRoot, "script", "verify-omo-ai-payload.mjs"))
+  copyFileSync(npmInvocationSource, join(fakeRepoRoot, "script", "npm-invocation.mjs"))
 
     const packageDir = join(fakeRepoRoot, "packages", "omo-native")
     mkdirSync(packageDir, { recursive: true })
