@@ -6070,6 +6070,36 @@ describe("BackgroundManager.handleEvent - session.error", () => {
     manager.shutdown()
   })
 
+  test("records only terminal errors for untracked sessions", () => {
+    //#given
+    const manager = createBackgroundManager()
+
+    try {
+      //#when
+      manager.handleEvent({
+        type: "session.error",
+        properties: {
+          sessionID: "ses_untracked",
+          error: { name: "ProviderModelNotFoundError", message: "Model not found: opencode/gpt-5-nano" },
+        },
+      })
+      manager.handleEvent({
+        type: "session.error",
+        properties: {
+          sessionID: "ses_transient",
+          error: { name: "APIError", message: "503 overloaded", statusCode: 503 },
+        },
+      })
+
+      //#then
+      expect(manager.getTerminalChildError?.("ses_untracked")).toBe("Model not found: opencode/gpt-5-nano")
+      expect(manager.getTerminalChildError?.("ses_transient")).toBeNull()
+      expect(manager.getTerminalChildError?.("ses_unknown")).toBeNull()
+    } finally {
+      manager.shutdown()
+    }
+  })
+
   test("does not terminate task on session.error when session is still alive", async () => {
     //#given
     const manager = createBackgroundManagerWithOptions({
