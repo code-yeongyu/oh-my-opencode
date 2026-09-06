@@ -4,7 +4,6 @@ import { buildIdentityPaths } from "@oh-my-opencode/memory-core"
 import { FakeExtensionAPI } from "../../../test-support/fake-extension-api"
 import { createMemoryIdentityContext } from "./context"
 import { registerMemorianHooks } from "./memorian-hooks"
-import { branchEntryCount } from "./wiring-context"
 
 const identity = createMemoryIdentityContext({
   identity: "agent",
@@ -75,17 +74,17 @@ describe("registerMemorianHooks", () => {
   test("#given text-only and empty sessions #when agent_settled dispatches #then only the non-empty branch settles", async () => {
     const pi = new FakeExtensionAPI()
     const settled: unknown[] = []
-    pi.on("agent_settled", (_payload, eventCtx) => {
-      if (branchEntryCount(eventCtx) > 0) settled.push(eventCtx)
-      return undefined
+    registerMemorianHooks(pi, {
+      trigger: { onToolCall: () => {}, onSettled: (eventCtx) => { settled.push(eventCtx) } },
+      delivery: { onToolResult: async () => {} },
+      resolveContext: () => undefined,
+      resolveSessionId: () => undefined,
     })
-
     await pi.dispatch("agent_settled", {}, context("text-only", [
       { type: "message", message: { role: "user", content: "hello" } },
       { type: "message", message: { role: "assistant", content: "hi" } },
     ]))
     await pi.dispatch("agent_settled", {}, context("empty"))
-
     expect(settled).toHaveLength(1)
   })
 

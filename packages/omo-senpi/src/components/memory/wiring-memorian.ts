@@ -64,6 +64,7 @@ export function createMemorianComposition(
         trigger,
         delivery,
         resolveContext: runtime.resolveContext,
+        registerSettle: false,
         resolveSessionId: (eventCtx) => {
           const eventRecord = isRecord(eventCtx) ? eventCtx : undefined
           const manager = eventRecord !== undefined && isRecord(eventRecord.sessionManager) ? eventRecord.sessionManager : undefined

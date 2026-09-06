@@ -1,5 +1,6 @@
 import type { ComponentLogger, SenpiExtensionAPI } from "../../extension/types"
 import type { MemoryIdentityContext } from "./context"
+import { branchEntryCount } from "./wiring-context"
 import type { MemorianDelivery } from "./memorian-delivery"
 import type { MemorianTrigger } from "./memorian-trigger"
 
@@ -9,6 +10,7 @@ export interface MemorianHooksOptions {
   readonly resolveContext: (sessionId: string) => MemoryIdentityContext | undefined
   readonly resolveSessionId: (eventCtx: unknown) => string | undefined
   readonly logger?: ComponentLogger
+  readonly registerSettle?: boolean
 }
 
 export function registerMemorianHooks(pi: SenpiExtensionAPI, options: MemorianHooksOptions): void {
@@ -29,6 +31,13 @@ export function registerMemorianHooks(pi: SenpiExtensionAPI, options: MemorianHo
     }
     return undefined
   })
+
+  if (options.registerSettle !== false) {
+    pi.on("agent_settled", (_payload, eventCtx) => {
+      if (branchEntryCount(eventCtx) > 0) options.trigger.onSettled(eventCtx)
+      return undefined
+    })
+  }
 }
 
 function describe(error: unknown): string {
