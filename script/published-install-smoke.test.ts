@@ -1,12 +1,20 @@
 /// <reference types="bun-types" />
 
 import { afterAll, describe, expect, test } from "bun:test"
+import { execFileSync } from "node:child_process"
+import { existsSync } from "node:fs"
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { findMissingInstalledArtifacts, isSupportedPackageSpec, parseSmokeArgs } from "./published-install-smoke.mjs"
+import {
+  extractTarball,
+  findMissingInstalledArtifacts,
+  isSupportedPackageSpec,
+  parseSmokeArgs,
+} from "./published-install-smoke.mjs"
 
 const createdPluginPaths: string[] = []
+const createdSandboxPaths: string[] = []
 
 async function createInstalledPlugin(options: { readonly withUltraworkSkill: boolean }): Promise<string> {
   const pluginPath = await mkdtemp(join(tmpdir(), "omo-smoke-plugin-"))
@@ -21,9 +29,16 @@ async function createInstalledPlugin(options: { readonly withUltraworkSkill: boo
   return pluginPath
 }
 
+async function packProbeTarball(directory: string, tarballName: string): Promise<string> {
+  await mkdir(join(directory, "package"), { recursive: true })
+  await writeFile(join(directory, "package", "package.json"), '{"name":"probe","version":"1.0.0"}')
+  execFileSync("tar", ["-czf", tarballName, "package"], { cwd: directory, stdio: "ignore" })
+  return join(directory, tarballName)
+}
+
 afterAll(async () => {
-  for (const pluginPath of createdPluginPaths) {
-    await rm(pluginPath, { recursive: true, force: true })
+  for (const createdPath of [...createdPluginPaths, ...createdSandboxPaths]) {
+    await rm(createdPath, { recursive: true, force: true })
   }
 })
 
@@ -82,5 +97,33 @@ describe("published install smoke", () => {
     expect(isSupportedPackageSpec("lazycodex-ai@latest")).toBe(true)
     expect(isSupportedPackageSpec("oh-my-openagent@5.0.0-beta.43")).toBe(true)
     expect(isSupportedPackageSpec("@scope/pkg@beta")).toBe(true)
+  })
+
+  test("#given a tarball packed beside the sandbox #when it is extracted #then the payload lands under the sandbox", async () => {
+    // given
+    const workingDirectory = await mkdtemp(join(tmpdir(), "omo-smoke-sandbox-"))
+    createdSandboxPaths.push(workingDirectory)
+    const tarballPath = await packProbeTarball(workingDirectory, "probe.tgz")
+
+    // when
+    const packageRoot = await extractTarball(tarballPath, workingDirectory)
+
+    // then
+    expect(packageRoot).toBe(join(workingDirectory, "extracted", "package"))
+    expect(existsSync(join(packageRoot, "package.json"))).toBe(true)
+  })
+
+  test("#given a tarball handed in from outside the sandbox #when it is extracted #then the payload still lands under the sandbox", async () => {
+    // given
+    const sourceDirectory = await mkdtemp(join(tmpdir(), "omo-smoke-source-"))
+    const workingDirectory = await mkdtemp(join(tmpdir(), "omo-smoke-sandbox-"))
+    createdSandboxPaths.push(sourceDirectory, workingDirectory)
+    const tarballPath = await packProbeTarball(sourceDirectory, "probe.tgz")
+
+    // when
+    const packageRoot = await extractTarball(tarballPath, workingDirectory)
+
+    // then
+    expect(existsSync(join(packageRoot, "package.json"))).toBe(true)
   })
 })
