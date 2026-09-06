@@ -1,0 +1,11 @@
+{
+  "redSelfTestExit": 1,
+  "greenSelfTestExit": 0,
+  "liveFallbackResult": "PASS",
+  "scenarios": [
+    "explore-qwen-fallback",
+    "librarian-qwen-fallback"
+  ],
+  "hostileUserprofileOverridden": true,
+  "sandboxCleanup": "PASS"
+}

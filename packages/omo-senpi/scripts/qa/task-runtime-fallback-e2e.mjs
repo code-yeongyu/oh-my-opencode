@@ -99,6 +99,7 @@ function agentFallbackChecks(agentType) {
 function childEnv(baseEnv, sandbox, sessionDir, scenarioName) {
   const common = {
     HOME: sandbox.homeDir,
+    USERPROFILE: sandbox.homeDir,
     OMO_CODING_AGENT_DIR: sandbox.agentDir,
     PI_CODING_AGENT_DIR: sandbox.agentDir,
     SENPI_CODING_AGENT_DIR: sandbox.agentDir,
@@ -249,6 +250,7 @@ function selfTest() {
       OPENAI_API_KEY: "secret",
       OMO_CODING_AGENT_DIR: "/real-omo",
       PI_CODING_AGENT_DIR: "/real-pi",
+      USERPROFILE: "/real-user-profile",
       SENPI_CODING_AGENT_DIR: "/real-senpi",
     },
     sandbox,
@@ -257,6 +259,7 @@ function selfTest() {
   )
   if (
     isolated.OPENAI_API_KEY !== undefined ||
+    isolated.USERPROFILE !== sandbox.homeDir ||
     isolated.OMO_CODING_AGENT_DIR !== sandbox.agentDir ||
     isolated.PI_CODING_AGENT_DIR !== sandbox.agentDir ||
     isolated.SENPI_CODING_AGENT_DIR !== sandbox.agentDir

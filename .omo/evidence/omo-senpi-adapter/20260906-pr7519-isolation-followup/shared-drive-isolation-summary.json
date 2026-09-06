@@ -1,0 +1,29 @@
+{
+  "result": "PASS",
+  "runtime": {
+    "os": "Linux container",
+    "node": "24.20.0",
+    "bun": "1.4.0+34cbb9a40"
+  },
+  "checks": {
+    "isolationCertified": true,
+    "realHomeIsolationCertified": true,
+    "certificationEnvironmentObserved": true,
+    "certificationRootsComplete": true,
+    "certificationRootsTruncated": false,
+    "realSenpiUntouched": true,
+    "realOmoUntouched": true,
+    "realSenpiProtectedStateComplete": true,
+    "realOmoProtectedStateComplete": true,
+    "realSenpiNonvolatileObservationComplete": true,
+    "realOmoNonvolatileObservationComplete": true,
+    "sandboxPathsCapturedPrivately": true,
+    "realHomePathsCapturedPrivately": true
+  },
+  "attributedChangedPaths": {
+    "certification": [],
+    "realSenpi": [],
+    "realOmo": []
+  },
+  "isolationErrors": []
+}
