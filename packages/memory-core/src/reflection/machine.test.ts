@@ -59,6 +59,40 @@ describe("reflection trigger machine", () => {
     expect(evaluateTransitions(noThreshold, { kind: "settled", success: true }).action).toEqual({ kind: "none" })
   })
 
+  it("#given a backlog at or above the snapshot byte budget #when a successful run settles below the step threshold #then a step-count reservation is requested", () => {
+    // given
+    const base = machine(1)
+    const overflowing: MachineState = {
+      ...base,
+      journal: { ...base.journal, state: { ...base.journal.state, unreflected_bytes: 200_000 } },
+      config: { ...base.config, snapshotMaxBytes: 131_072 },
+    }
+    const withinBudget: MachineState = {
+      ...overflowing,
+      journal: { ...base.journal, state: { ...base.journal.state, unreflected_bytes: 130_000 } },
+    }
+
+    // when / then
+    expect(evaluateTransitions(overflowing, { kind: "settled", success: true }).action).toMatchObject({
+      kind: "reserve",
+      request: { trigger: "step-count" },
+    })
+    expect(evaluateTransitions(withinBudget, { kind: "settled", success: true }).action).toEqual({ kind: "none" })
+  })
+
+  it("#given a step-count run is already reserved #when the backlog overflows the budget #then no duplicate reservation is requested", () => {
+    // given
+    const base = machine(1)
+    const overflowing: MachineState = {
+      ...base,
+      journal: { ...base.journal, state: { ...base.journal.state, unreflected_bytes: 200_000 } },
+      reservation: reserveTransition({}, request("step-count"), "active").state,
+    }
+
+    // when / then
+    expect(evaluateTransitions(overflowing, { kind: "settled", success: true }).action).toEqual({ kind: "none" })
+  })
+
   it("#given an aborted or failed run #when it settles #then no automatic trigger launches", () => {
     expect(evaluateTransitions(machine(99), { kind: "settled", success: false }).action).toEqual({ kind: "none" })
   })

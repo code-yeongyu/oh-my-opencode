@@ -1,0 +1,27 @@
+{
+  "result": "PASS",
+  "scenarios": [
+    {
+      "name": "explore-qwen-fallback",
+      "checks": {
+        "exit_zero": "PASS",
+        "agent_type": "PASS",
+        "selected_model": "PASS",
+        "resolved_from_agent": "PASS",
+        "real_credentials_untouched": "PASS",
+        "cleanup": "PASS"
+      }
+    },
+    {
+      "name": "librarian-qwen-fallback",
+      "checks": {
+        "exit_zero": "PASS",
+        "agent_type": "PASS",
+        "selected_model": "PASS",
+        "resolved_from_agent": "PASS",
+        "real_credentials_untouched": "PASS",
+        "cleanup": "PASS"
+      }
+    }
+  ]
+}
