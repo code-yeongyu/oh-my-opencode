@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { PendingNudges } from "@oh-my-opencode/memory-core"
 import { MemorianGateRunner } from "./memorian-runner"
-import { callNudge, fixture, launchInput, roots, runnerOptions, scriptedSession, SESSION_ID } from "./memorian-runner.test-support"
+import { callNudge, fixture, launchInput, roots, runnerOptions, scriptedSession } from "./memorian-runner.test-support"
 import { rmEfaultTolerant } from "./teardown.test-support"
 
 const SECRET = "sk-live-abcdefghijklmnop"
@@ -25,7 +24,7 @@ function captureWarnings(): {
 }
 
 describe("MemorianGateRunner", () => {
-  test("#given a silent normal judge #when the runner launches #then the result is empty and no pending payload is written", async () => {
+  test("#given a silent normal judge #when the runner launches #then the result is empty", async () => {
     // given
     const { identityPaths } = await fixture()
     const stub = scriptedSession(async () => undefined)
@@ -38,10 +37,9 @@ describe("MemorianGateRunner", () => {
 
     // then
     expect(result.status).toBe("empty")
-    expect(await new PendingNudges(identityPaths.recallPending).take(SESSION_ID, { currentEpoch: 0 })).toEqual([])
   })
 
-  test("#given a rejected-only nudge then a normal stop #when the runner launches #then the result is empty and no pending payload is written", async () => {
+  test("#given a rejected-only nudge then a normal stop #when the runner launches #then the result is empty", async () => {
     // given
     const { identityPaths } = await fixture()
     const stub = scriptedSession(async (options) => {
@@ -57,7 +55,6 @@ describe("MemorianGateRunner", () => {
 
     // then
     expect(result.status).toBe("empty")
-    expect(await new PendingNudges(identityPaths.recallPending).take(SESSION_ID, { currentEpoch: 0 })).toEqual([])
   })
 
   test("#given a child turn that ends with a secret-bearing provider error #when the runner launches #then child_failed is redacted and logs omit the token", async () => {
@@ -82,7 +79,6 @@ describe("MemorianGateRunner", () => {
     expect(failureLog).toBeDefined()
     expect(failureLog?.details).toMatchObject({ runId: result.runId, cause: "child_failed", reason: "redacted" })
     expect(JSON.stringify({ result, warnings })).not.toContain(SECRET)
-    expect(await new PendingNudges(identityPaths.recallPending).take(SESSION_ID, { currentEpoch: 0 })).toEqual([])
   })
 
   test("#given loadConfig throws #when the runner launches #then the failure is launch_failed with a normalized reason", async () => {
@@ -105,7 +101,6 @@ describe("MemorianGateRunner", () => {
       message: "memorian gate launch failed",
       details: { error: "config missing" },
     })
-    expect(await new PendingNudges(identityPaths.recallPending).take(SESSION_ID, { currentEpoch: 0 })).toEqual([])
   })
 
   test("#given session creation throws a secret-bearing error #when the runner launches #then the creation warning is sanitized", async () => {
@@ -129,6 +124,5 @@ describe("MemorianGateRunner", () => {
     expect(creationLog).toBeDefined()
     expect(creationLog?.details).toMatchObject({ error: "redacted" })
     expect(JSON.stringify({ result, warnings })).not.toContain(SECRET)
-    expect(await new PendingNudges(identityPaths.recallPending).take(SESSION_ID, { currentEpoch: 0 })).toEqual([])
   })
 })

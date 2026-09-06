@@ -34,6 +34,7 @@ export interface MemorianGatePort {
     readonly compactionEpoch?: number
     /** The session's live compaction epoch, read again before the verdict is persisted. */
     readonly currentCompactionEpoch?: () => number
+    readonly deadlineMs?: number
   }): Promise<unknown>
   cancel?(): Promise<void>
   whenIdle?(): Promise<void>
