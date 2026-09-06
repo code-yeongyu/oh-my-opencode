@@ -566,7 +566,7 @@ jobs:
         run: |
           set -uo pipefail
           status=0
-          for spec in lazycodex-ai@latest oh-my-openagent@latest; do
+          for spec in lazycodex-ai@latest lazycodex-ai@beta oh-my-openagent@latest oh-my-openagent@beta; do
             echo "::group::published install smoke: $spec"
             if node script/published-install-smoke.mjs --package="$spec"; then
               echo "published install smoke passed for $spec"
