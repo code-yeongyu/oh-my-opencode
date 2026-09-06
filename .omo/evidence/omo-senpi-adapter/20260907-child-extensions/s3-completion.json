@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "runId": "reflection-run-1",
+  "identity": "project-9d98fa4b",
+  "category": "quick",
+  "model": "omo-mock/mock-1",
+  "thinking": "low",
+  "conversationIds": [
+    "qa-child-ext-session"
+  ],
+  "trigger": "manual",
+  "outcome": "failed",
+  "reason": "spawn_failed",
+  "detail": "No reflection model candidate is visible to the discovery-disabled child: omo-mock/mock-1 (model_not_visible)",
+  "startedAt": "2026-09-06T22:18:40.991Z",
+  "finishedAt": "2026-09-06T22:18:42.084Z",
+  "durationMs": 1093,
+  "consecutiveFailures": 1,
+  "delivery": {
+    "status": "consumed",
+    "sessionId": "qa-child-ext-session",
+    "consumedAt": "2026-09-06T22:18:42.084Z"
+  }
+}

@@ -8,13 +8,22 @@ import type { ReflectionModelCandidate } from "./resolve-model"
 
 const PREFLIGHT_TIMEOUT_MS = 10_000
 const CATALOG_CACHE_TTL_MS = 2 * 60_000
-const DISCOVERY_DISABLED_MODEL_LIST_ARGS = [
-  "--no-extensions",
-  "--no-skills",
-  "--no-prompt-templates",
-  "--no-context-files",
-  "--list-models",
-] as const
+
+/**
+ * `--no-extensions` disables only discovery; explicit `-e` entries still load, so the
+ * config-declared child extensions (auth/provider extensions) must ride along or the catalog
+ * a provider extension registers is invisible to the probe and every candidate is rejected.
+ */
+function modelListArgs(extensions: readonly string[]): string[] {
+  return [
+    "--no-extensions",
+    ...extensions.flatMap((path) => ["-e", path]),
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-context-files",
+    "--list-models",
+  ]
+}
 
 export type ModelPreflightRejection = {
   readonly model: string
@@ -40,6 +49,8 @@ type ModelPreflightInput = {
   readonly candidates: MemoryModelChain
   readonly launch: SenpiLauncher
   readonly env: NodeJS.ProcessEnv
+  /** `child_extensions` paths re-added as `-e` entries so provider extensions load in the probe. */
+  readonly extensions?: readonly string[]
   readonly configSources: readonly { readonly path: string; readonly exists: boolean }[]
   readonly warn?: (message: string, details?: unknown) => void
   readonly timeoutMs?: number
@@ -54,14 +65,15 @@ type CatalogCacheEntry = {
 const catalogCache = new Map<string, CatalogCacheEntry>()
 
 export async function preflightMemoryModels(input: ModelPreflightInput): Promise<ModelPreflightResult> {
-  const cacheKey = await modelCatalogCacheKey(input.launch, input.configSources)
+  const extensions = input.extensions ?? []
+  const cacheKey = await modelCatalogCacheKey(input.launch, input.configSources, extensions)
   const now = (input.now ?? Date.now)()
   const cached = catalogCache.get(cacheKey)
   const current = cached !== undefined && now - cached.probedAt < CATALOG_CACHE_TTL_MS ? cached : undefined
   let visible = current?.visible
   if (visible === undefined) {
     try {
-      visible = await probeChildModels(input.launch, input.env, input.timeoutMs ?? PREFLIGHT_TIMEOUT_MS)
+      visible = await probeChildModels(input.launch, input.env, input.timeoutMs ?? PREFLIGHT_TIMEOUT_MS, extensions)
       catalogCache.set(cacheKey, { visible, probedAt: now })
     } catch (error) {
       input.warn?.("memory child model preflight failed; falling back to reactive model retries", {
@@ -91,10 +103,11 @@ async function probeChildModels(
   launch: SenpiLauncher,
   env: NodeJS.ProcessEnv,
   timeoutMs: number,
+  extensions: readonly string[],
 ): Promise<ReadonlySet<string>> {
   const child = spawn(launch.command, [
     ...launch.prefixArgs,
-    ...DISCOVERY_DISABLED_MODEL_LIST_ARGS,
+    ...modelListArgs(extensions),
   ], {
     env,
     stdio: ["ignore", "pipe", "pipe"],
@@ -144,6 +157,7 @@ function parseModelCatalog(output: string): ReadonlySet<string> {
 async function modelCatalogCacheKey(
   launch: SenpiLauncher,
   sources: readonly { readonly path: string; readonly exists: boolean }[],
+  extensions: readonly string[],
 ): Promise<string> {
   const sourceMtimes = await Promise.all(sources.filter((source) => source.exists).map(async (source) => {
     try {
@@ -152,7 +166,9 @@ async function modelCatalogCacheKey(
       return `${source.path}:missing`
     }
   }))
-  return JSON.stringify([launch.command, launch.prefixArgs, sourceMtimes])
+  // The extension list changes which providers register, so a different set must not reuse a
+  // cached catalog probed without it.
+  return JSON.stringify([launch.command, launch.prefixArgs, extensions, sourceMtimes])
 }
 
 function asMemoryModelChain(candidates: readonly ReflectionModelCandidate[]): MemoryModelChain {

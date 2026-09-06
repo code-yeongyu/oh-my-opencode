@@ -1,0 +1,75 @@
+{
+  "results": [
+    {
+      "name": "S1 provider hidden under --no-extensions",
+      "ok": true,
+      "detail": "omo-mock absent from catalog"
+    },
+    {
+      "name": "S1 provider visible with explicit -e",
+      "ok": true,
+      "detail": "omo-mock present in catalog"
+    },
+    {
+      "name": "S2 /reflect accepted",
+      "ok": true,
+      "detail": "reflection run reflection-run-1 reserved; it starts at the next idle boundary"
+    },
+    {
+      "name": "S2 outcome merged",
+      "ok": true,
+      "detail": "{\"schemaVersion\":1,\"runId\":\"reflection-run-1\",\"identity\":\"project-90b75a43\",\"category\":\"quick\",\"model\":\"omo-mock/mock-1\",\"thinking\":\"low\",\"conversationIds\":[\"qa-child-ext-session\"],\"trigger\":\"manual\",\"outcome\":\"merged\",\"startedAt\":\"2026-09-06T22:18:39.541Z\",\"finishedAt\":\"2026-09-06T22:18:40.837Z\",\"d"
+    },
+    {
+      "name": "S2 merge commit landed",
+      "ok": true,
+      "detail": "merge(reflection): manual reflection-run-1 || feat(reflection): qa child extension proof || chore: initialize local memory"
+    },
+    {
+      "name": "S2 reflection child argv has -e after --no-extensions",
+      "ok": true,
+      "detail": "-p --system-prompt /tmp/omo-senpi-qa-rpshoF/memory/agents/project-90b75a43/runtime/reflection/runs/reflection-run-1/reflection-persona.md --tools bash,edit --no-extensions -e /home/srijan/Documents/projects/oh-my-openagent-wt/feature-senpi-child-extensions/packages/omo-senpi/scripts/qa/task-e2e-mock"
+    },
+    {
+      "name": "S2 catalog probe ran discovery-disabled",
+      "ok": true,
+      "detail": "--no-extensions -e /home/srijan/Documents/projects/oh-my-openagent-wt/feature-senpi-child-extensions/packages/omo-senpi/scripts/qa/task-e2e-mock-provider.ts --no-skills --no-prompt-templates --no-context-files --list-models"
+    },
+    {
+      "name": "S3 /reflect accepted",
+      "ok": true,
+      "detail": "reflection run reflection-run-1 reserved; it starts at the next idle boundary"
+    },
+    {
+      "name": "S3 run failed without merge",
+      "ok": true,
+      "detail": "{\"schemaVersion\":1,\"runId\":\"reflection-run-1\",\"identity\":\"project-9d98fa4b\",\"category\":\"quick\",\"model\":\"omo-mock/mock-1\",\"thinking\":\"low\",\"conversationIds\":[\"qa-child-ext-session\"],\"trigger\":\"manual\",\"outcome\":\"failed\",\"reason\":\"spawn_failed\",\"detail\":\"No reflection model candidate is visible to the"
+    },
+    {
+      "name": "S3 no launch manifest (child never spawned)",
+      "ok": true,
+      "detail": "/tmp/omo-senpi-qa-N1RX9J/memory/agents/project-9d98fa4b/runtime/reflection/runs/reflection-run-1"
+    },
+    {
+      "name": "S3 no detached child argv carries -e",
+      "ok": true,
+      "detail": "--no-extensions --no-skills --no-prompt-templates --no-context-files --list-models"
+    },
+    {
+      "name": "S3 catalog probe ran discovery-disabled",
+      "ok": true,
+      "detail": "--no-extensions --no-skills --no-prompt-templates --no-context-files --list-models"
+    },
+    {
+      "name": "isolation: real ~/.senpi/agent untouched",
+      "ok": true,
+      "detail": "4ac1b2f21200 -> 4ac1b2f21200"
+    },
+    {
+      "name": "isolation: real ~/.omo/memory untouched",
+      "ok": true,
+      "detail": "f08dbcbc4e35 -> f08dbcbc4e35"
+    }
+  ],
+  "failures": []
+}

@@ -15,6 +15,8 @@ export type ResolveAndPreflightMemoryLaunchInput = {
   readonly candidates: MemoryModelChain
   readonly senpiCommand?: string
   readonly senpiPrefixArgs?: readonly string[]
+  /** Resolved `child_extensions` config paths re-added as `-e` entries on the model probe. */
+  readonly childExtensions?: readonly string[]
   readonly env: NodeJS.ProcessEnv
   readonly envFlag: "SENPI_MEMORY_REFLECTION" | "SENPI_MEMORY_FACTS"
   readonly configSources: readonly { readonly path: string; readonly exists: boolean }[]
@@ -38,6 +40,7 @@ export const resolveAndPreflightMemoryLaunch: ResolveAndPreflightMemoryLaunch = 
   const preflight = await preflightMemoryModels({
     candidates: input.candidates,
     launch,
+    ...(input.childExtensions === undefined ? {} : { extensions: input.childExtensions }),
     env: {
       ...input.env,
       [input.envFlag]: "1",

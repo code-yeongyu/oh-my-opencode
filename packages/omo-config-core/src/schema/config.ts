@@ -16,6 +16,12 @@ export { OmoHarnessIdSchema }
 
 export const OmoOpenCodeHarnessConfigSchema = z.record(z.string(), z.unknown())
 
+// Senpi extension file paths always forwarded as explicit `-e`/`--extension` entries to
+// detached child processes (memory reflection/dream workers, task/team/DAG RPC children,
+// model catalog probes) even though those children run with `--no-extensions` discovery
+// disabled. Consumed only by the Senpi adapter; other harnesses ignore it.
+export const OmoChildExtensionsSchema = z.array(z.string().min(1))
+
 export const OmoTypedHarnessConfigSchema = z.object({
   formatOnMutation: OmoFormatOnMutationLayerSchema.optional(),
   categories: OmoCategoriesConfigSchema.optional(),
@@ -26,6 +32,7 @@ export const OmoTypedHarnessConfigSchema = z.object({
   models: OmoModelCatalogLayerSchema.optional(),
   memory: OmoMemorySettingsLayerSchema.optional(),
   telemetry: OmoTelemetrySettingsLayerSchema.optional(),
+  child_extensions: OmoChildExtensionsSchema.optional(),
 }).strict()
 
 export const OmoConfigProfileSchema = z.object({
@@ -38,6 +45,7 @@ export const OmoConfigProfileSchema = z.object({
   models: OmoModelCatalogLayerSchema.optional(),
   memory: OmoMemorySettingsLayerSchema.optional(),
   telemetry: OmoTelemetrySettingsLayerSchema.optional(),
+  child_extensions: OmoChildExtensionsSchema.optional(),
   "[opencode]": OmoOpenCodeHarnessConfigSchema.optional(),
   "[senpi]": OmoTypedHarnessConfigSchema.optional(),
   "[codex]": OmoTypedHarnessConfigSchema.optional(),
@@ -54,6 +62,7 @@ export const OmoConfigSchema = z.object({
   models: OmoModelCatalogSchema.optional(),
   memory: OmoMemorySettingsSchema.optional(),
   telemetry: OmoTelemetrySettingsSchema.optional(),
+  child_extensions: OmoChildExtensionsSchema.optional(),
   "[opencode]": OmoOpenCodeHarnessConfigSchema.optional(),
   "[senpi]": OmoTypedHarnessConfigSchema.optional(),
   "[codex]": OmoTypedHarnessConfigSchema.optional(),
@@ -73,6 +82,7 @@ export const OmoConfigLayerSchema = z.object({
   models: OmoModelCatalogLayerSchema.optional(),
   memory: OmoMemorySettingsLayerSchema.optional(),
   telemetry: OmoTelemetrySettingsLayerSchema.optional(),
+  child_extensions: OmoChildExtensionsSchema.optional(),
   "[opencode]": OmoOpenCodeHarnessConfigSchema.optional(),
   "[senpi]": OmoTypedHarnessConfigSchema.optional(),
   "[codex]": OmoTypedHarnessConfigSchema.optional(),

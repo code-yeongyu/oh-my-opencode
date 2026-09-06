@@ -11,7 +11,6 @@ import {
   getTeamTask,
   listTeamTasks,
   reconcileTeamMailboxOnSessionStart,
-  parseExtensionEntries,
   resolveMemberExtensionEntryPath,
   refreshTeamMemberStatuses,
   requestShutdown,
@@ -31,6 +30,7 @@ import {
   type TeamToolsService,
 } from "@oh-my-opencode/senpi-task"
 
+import { resolveInheritedChildExtensions } from "../config-resolution"
 import type { TaskRuntimeContext } from "./runtime-context"
 import {
   buildMemberPorts,
@@ -145,7 +145,10 @@ export function createTeamService(deps: TeamServiceDeps): TeamToolsService {
         ...(deps.now !== undefined ? { now: deps.now } : {}),
         memberExtension: {
           entryPath: memberExtensionEntryPath,
-          inheritedExtensions: parseExtensionEntries(process.argv),
+          inheritedExtensions: resolveInheritedChildExtensions(deps.omoConfig, process.argv, {
+            cwd: deps.cwd,
+            warn: (message, details) => log(message, details),
+          }),
         },
       })
     },

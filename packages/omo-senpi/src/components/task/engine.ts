@@ -5,7 +5,6 @@ import {
   createCompletionNotifier,
   createFsSkillLoader,
   createTaskLifecycle,
-  parseExtensionEntries,
   createTaskManager,
   createTeamMemberRespawnLaunchResolver,
   createTaskRecordStore,
@@ -23,6 +22,7 @@ import {
 
 import type { IdleInjectionCoordinator } from "../../extension/idle-injection-coordinator"
 import type { SenpiExtensionAPI } from "../../extension/types"
+import { resolveInheritedChildExtensions } from "../config-resolution"
 import {
   createCategoryConfigGenerations,
   createGenerationObservingPlanner,
@@ -197,8 +197,21 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
   const registry = createManagerResidencyRegistry(getManager)
   const lifecycle = createTaskLifecycle({ store: storeChain.store, registry, config: settings })
 
+  // Detached children run --no-extensions; the parent's own -e argv entries plus the
+  // config-declared `child_extensions` list are re-added explicitly so required
+  // auth/provider extensions still load. argv entries stay first: index 0 must remain the
+  // OMO launcher extension because senpi-task drops spec.extensions[0] for DAG-owned children.
+  const inheritedExtensions = resolveInheritedChildExtensions(deps.omoConfig, process.argv, {
+    cwd: deps.cwd,
+    warn: (message, details) => log(message, details),
+  })
   const factories = deps.runnerFactories ?? DEFAULT_RUNNER_FACTORIES
-  const runnerContext: RunnerBuildContext = { runtime, sharedParentTools: deps.sharedParentTools, settings }
+  const runnerContext: RunnerBuildContext = {
+    runtime,
+    sharedParentTools: deps.sharedParentTools,
+    settings,
+    inheritedExtensions,
+  }
   const resolveRegistry: ResolveModelRegistry = () => runtime.modelRegistry()
   const basePlanner = createGenerationObservingPlanner({
     planner: createTaskChildPlanner(deps.omoConfig, agents, resolveRegistry),
@@ -229,7 +242,7 @@ export function composeTaskEngine(deps: ComposeTaskEngineDeps): TaskEngine {
       taskSettings: settings,
       memberExtension: {
         entryPath: resolveMemberExtensionEntryPath(),
-        inheritedExtensions: parseExtensionEntries(process.argv),
+        inheritedExtensions,
       },
     }),
   })

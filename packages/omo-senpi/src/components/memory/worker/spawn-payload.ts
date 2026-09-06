@@ -99,12 +99,16 @@ export async function prepareReflectionSpawn(input: PrepareReflectionSpawnInput)
   // -p selects print mode; --system-prompt reads a file path; --tools is a comma allowlist;
   // --no-extensions/--no-skills/--no-prompt-templates/--no-context-files disable discovery;
   // --session-dir isolates JSONL storage; --model/--thinking select the category result; @file
-  // loads the mechanics prompt as the initial non-interactive message.
+  // loads the mechanics prompt as the initial non-interactive message. --no-extensions disables
+  // only DISCOVERY: explicit -e/--extension entries still load, which is how config-declared
+  // child_extensions (auth/provider extensions the child cannot run without) reach the child.
+  const childExtensions = input.childExtensions ?? []
   const args = [
     "-p",
     "--system-prompt", persona,
     "--tools", "bash,edit",
     "--no-extensions",
+    ...childExtensions.flatMap((path) => ["-e", path]),
     "--no-skills",
     "--no-prompt-templates",
     "--no-context-files",

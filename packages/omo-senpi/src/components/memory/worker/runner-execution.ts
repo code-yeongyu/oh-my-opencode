@@ -11,7 +11,7 @@ import {
   type ReservedRun,
 } from "@oh-my-opencode/memory-core"
 
-import type { SenpiOmoConfigResult } from "../../config-resolution"
+import { resolveChildExtensions, type SenpiOmoConfigResult } from "../../config-resolution"
 import { resolveAgentReflectionSettings } from "../reflection-settings"
 import { createRunWorktree } from "./create-run-worktree"
 import { resolveAndPreflightMemoryLaunch } from "./memory-launch-preflight"
@@ -61,11 +61,18 @@ export async function executeReflectionRun(input: {
       ...resolution.fallbacks,
     ]
     const env = options.env ?? process.env
+    // Resolved once per run: the same list reaches the catalog preflight probe AND every
+    // spawned attempt, so an auth/provider extension in `child_extensions` is visible to both.
+    const childExtensions = resolveChildExtensions(loaded.config, {
+      cwd: options.cwd,
+      warn: (message, details) => options.logger?.warn(message, details),
+    })
     let launched = false
     await (options.resolveAndPreflightLaunch ?? resolveAndPreflightMemoryLaunch)({
       candidates,
       senpiCommand: options.senpiCommand,
       senpiPrefixArgs: options.senpiPrefixArgs,
+      childExtensions,
       env,
       envFlag: "SENPI_MEMORY_REFLECTION",
       configSources: loaded.sources,
@@ -91,6 +98,7 @@ export async function executeReflectionRun(input: {
           env,
           senpiCommand: options.senpiCommand,
           senpiPrefixArgs: options.senpiPrefixArgs,
+          childExtensions,
         })
         if (!launched) {
           await input.appendLaunched()

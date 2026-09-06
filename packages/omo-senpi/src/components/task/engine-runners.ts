@@ -10,7 +10,6 @@ import {
   createParentRegistrySessionContext,
   createRpcManagedRunner,
   mapOmoConfigAgents,
-  parseExtensionEntries,
   type AgentDefinition,
   type ManagedRunner,
 } from "@oh-my-opencode/senpi-task"
@@ -26,6 +25,12 @@ export interface RunnerBuildContext {
   readonly runtime: TaskRuntimeContext
   readonly sharedParentTools: () => readonly ToolDefinition[]
   readonly settings: OmoTaskSettings
+  /**
+   * Extensions forwarded to every detached child via `-e` under `--no-extensions`: the
+   * parent's own argv `-e` entries plus the `child_extensions` config list, resolved once by
+   * composeTaskEngine.
+   */
+  readonly inheritedExtensions: readonly string[]
 }
 
 export interface TaskRunnerFactories {
@@ -66,6 +71,6 @@ function buildInProcessRunner(build: RunnerBuildContext): ManagedRunner {
   return createInProcessManagedRunner(inProcess, context)
 }
 
-function buildProcessRunner(_build: RunnerBuildContext): ManagedRunner {
-  return createRpcManagedRunner(new RpcProcessRunner({ inheritedExtensions: parseExtensionEntries(process.argv) }))
+function buildProcessRunner(build: RunnerBuildContext): ManagedRunner {
+  return createRpcManagedRunner(new RpcProcessRunner({ inheritedExtensions: build.inheritedExtensions }))
 }

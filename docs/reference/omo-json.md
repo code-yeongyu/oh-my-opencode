@@ -103,6 +103,7 @@ No default profiles ship. A profile exists only when you write one under `profil
   "memory": {},         // MemorySettings, Senpi memory subsystem
   "git_master": { "commit_footer": true, "include_co_authored_by": true }, // commit attribution (Senpi harness)
   "telemetry": { "enabled": true }, // Senpi telemetry, enabled by default
+  "child_extensions": [], // Senpi extension paths always loaded in detached children
   "[opencode]": {},     // OpenCode plugin config, freeform (see configuration.md)
   "[senpi]": {},        // Senpi-only overrides, typed base keys
   "[codex]": {},        // Codex-only overrides, typed base keys
@@ -135,6 +136,27 @@ The optional `telemetry` block controls OmO Native product telemetry in Senpi. `
 ```
 
 The block may also appear at the shared top level or in profile layers and follows the normal resolution order. Because typed config objects are strict, an older `@oh-my-opencode/omo-config-core` version that predates this key rejects a file containing `telemetry` instead of ignoring it. See [Mixed-version compatibility](#mixed-version-compatibility) before sharing one config across versions.
+
+### `child_extensions` (Senpi harness)
+
+The optional `child_extensions` list holds senpi extension file paths that detached background
+children must always load. Every detached child omo spawns — memory reflection/dream workers,
+task/team/DAG RPC children, the model catalog preflight probe, and the `/people --ask` quick
+child — runs with `--no-extensions`, which disables extension *discovery* but still honors
+explicit `-e` entries. Listing an extension here re-adds it on every one of those spawns, so an
+extension-based auth provider or custom model provider is visible to background children the
+same way it is in the interactive session.
+
+```jsonc
+{
+  "child_extensions": ["~/.config/my-auth/senpi-auth-ext.js"]
+}
+```
+
+Entries may be absolute, `~`-prefixed, or relative (resolved against the session cwd at spawn
+time). Missing files warn and are skipped rather than failing the launch. The key may appear at
+the shared top level, inside `[senpi]`, or in profile layers and follows the normal resolution
+order. This setting applies only to Senpi.
 
 ### `memory` (Senpi harness)
 

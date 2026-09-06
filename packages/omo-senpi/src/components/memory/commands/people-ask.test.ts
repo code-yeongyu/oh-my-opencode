@@ -108,4 +108,42 @@ describe("/people --ask", () => {
 
     expect(answer.startsWith("PEOPLE-PREFIX-MARKER")).toBe(true)
   })
+
+  test("#given child_extensions in the config #when the people-ask child runs #then the paths are re-added as -e entries after --no-extensions", async () => {
+    // given
+    const dir = mkdtempSync(join(tmpdir(), "people-ask-ext-"))
+    roots.push(dir)
+    const printer = join(dir, "printer.mjs")
+    writeFileSync(printer, "process.stdout.write(process.argv.slice(2).join(' '))\n", "utf8")
+    const extension = join(dir, "auth-ext.js")
+    writeFileSync(extension, "// fixture\n", "utf8")
+    const missing = join(dir, "missing-ext.js")
+
+    const model: SenpiModelPort = { provider: "omo-mock", id: "mock-1" }
+    const runner = createPeopleAskRunner({
+      config: {
+        categories: { quick: { model: "omo-mock/mock-1" } },
+        child_extensions: [extension, missing],
+      },
+      registry: {
+        getAvailable: () => [model],
+        find: (provider, modelId) =>
+          provider === model.provider && modelId === model.id ? model : undefined,
+      },
+      senpiCommand: process.execPath,
+      senpiPrefixArgs: [printer],
+    })
+
+    // when
+    const answer = await runner({
+      slug: "jane-doe",
+      displayName: "Jane Doe",
+      question: "how does jane review?",
+      evidence: { card: ["IDENTITY: staff engineer"], observations: [], searchHits: [] },
+    })
+
+    // then: the existing extension rides along under --no-extensions; the missing one is skipped
+    expect(answer).toContain(`--no-extensions -e ${extension}`)
+    expect(answer).not.toContain(missing)
+  })
 })
