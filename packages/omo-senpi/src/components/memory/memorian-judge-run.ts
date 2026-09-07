@@ -35,7 +35,7 @@ export async function runMemorianJudge(
   runId: string,
   accepted: RecallNudge[],
   state: MemorianGateLaunchState,
-): Promise<{ readonly status: "completed" } | Extract<MemorianGateLaunchResult, { readonly status: "failed" | "dropped" }>> {
+): Promise<{ readonly status: "completed"; readonly partial?: true } | Extract<MemorianGateLaunchResult, { readonly status: "failed" | "dropped" }>> {
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined
   let deadlineReached = false
   const deadline = new Promise<"deadline">((resolve) => {
@@ -86,14 +86,16 @@ export async function runMemorianJudge(
       if (state.cancelled && settled === undefined) {
         return { status: "dropped", cause: "cancelled", runId, candidateCount: input.candidates.length }
       }
-      host.options.logger?.warn("memorian gate deadline exceeded", { runId })
+      host.options.logger?.warn("memorian gate deadline exceeded", { runId, salvaged: accepted.length })
+      if (accepted.length > 0) return { status: "completed", partial: true }
       state.cancelled = true
       return { status: "failed", cause: "deadline", model: resolution.model, candidateCount: input.candidates.length, runId }
     }
     const turn = await Promise.race([settled.waitForIdle(), deadline])
     if (turn === "deadline") {
-      host.options.logger?.warn("memorian gate deadline exceeded", { runId })
+      host.options.logger?.warn("memorian gate deadline exceeded", { runId, salvaged: accepted.length })
       await abortAndDispose(settled, host.options.logger, runId)
+      if (accepted.length > 0) return { status: "completed", partial: true }
       return { status: "failed", cause: "deadline", model: resolution.model, candidateCount: input.candidates.length, runId }
     }
     const classification = classifyJudgeTurn(turn)

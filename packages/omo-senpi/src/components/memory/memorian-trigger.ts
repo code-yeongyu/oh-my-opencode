@@ -152,7 +152,7 @@ export function createMemorianTrigger(options: MemorianTriggerOptions): Memorian
         ...(modelRegistry === undefined ? {} : { modelRegistry }),
         compactionEpoch: launchEpoch,
         currentCompactionEpoch: () => options.currentCompactionEpoch(collected.sessionId),
-        ...(origin === "tool_call" ? { deadlineMs: 45_000 } : {}),
+        ...(origin === "tool_call" ? { deadlineMs: 90_000 } : {}),
       })
       if (!isLaunchResult(result)) return
       if (result.status === "active") {

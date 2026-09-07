@@ -102,7 +102,7 @@ export type MemorianGateLaunchResult =
     readonly runId?: string
   }
   | { readonly status: "dropped"; readonly cause?: string; readonly model?: string; readonly candidateCount?: number; readonly runId?: string }
-  | { readonly status: "nudged"; readonly nudges: readonly RecallNudge[]; readonly model?: string; readonly runId: string }
+  | { readonly status: "nudged"; readonly nudges: readonly RecallNudge[]; readonly model?: string; readonly runId: string; readonly partial?: boolean }
 
 export type MemorianGateLaunchState = { cancelled: boolean }
 
@@ -188,7 +188,9 @@ export class MemorianGateRunner {
     if (state.cancelled || isStaleAfterCompaction(input)) return state.cancelled
       ? { status: "dropped", cause: "cancelled", candidateCount: input.candidates.length }
       : this.dropAfterCompaction(input)
-    return { status: "nudged", nudges, model: resolution.model, runId }
+    return judged.partial === true
+      ? { status: "nudged", nudges, model: resolution.model, runId, partial: true }
+      : { status: "nudged", nudges, model: resolution.model, runId }
   }
 
   async cancel(): Promise<void> {
