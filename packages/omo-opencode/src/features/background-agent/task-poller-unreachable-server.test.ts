@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, spyOn, test } from "bun:test"
+import { describe, expect, mock, test } from "bun:test"
 import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 import { checkAndInterruptStaleTasks } from "./task-poller"
 import type { BackgroundTask } from "./types"
@@ -6,7 +6,13 @@ import type { BackgroundTask } from "./types"
 type StaleSweepArgs = Parameters<typeof checkAndInterruptStaleTasks>[0]
 
 const UNREACHABLE_MESSAGE = "Unable to connect. Is the computer able to access the url?"
-const FIXED_NOW = new Date("2026-09-07T03:00:00.000Z").getTime()
+const MINUTE_MS = 60 * 1000
+
+// The sweep reads the wall clock through Date.now(); fixtures are built relative to
+// the same clock so the assertions never depend on when the suite happens to run.
+function minutesAgo(minutes: number): Date {
+  return new Date(Date.now() - minutes * MINUTE_MS)
+}
 
 function unreachableClient(): StaleSweepArgs["client"] {
   const reject = () => Promise.reject(new Error(UNREACHABLE_MESSAGE))
@@ -48,15 +54,8 @@ async function sweep(task: BackgroundTask): Promise<ReturnType<typeof mock>> {
 }
 
 describe("checkAndInterruptStaleTasks while the OpenCode server is unreachable", () => {
-  const nowSpy = spyOn(Date, "now")
-
-  afterEach(() => {
-    nowSpy.mockReset()
-  })
-
   test("#given a task stale past the default timeout #when every session call rejects as unreachable #then the task is finalized and the parent is told once", async () => {
-    nowSpy.mockReturnValue(FIXED_NOW)
-    const task = runningTask(new Date(FIXED_NOW - 46 * 60 * 1000))
+    const task = runningTask(minutesAgo(46))
 
     const notify = await sweep(task)
 
@@ -66,8 +65,7 @@ describe("checkAndInterruptStaleTasks while the OpenCode server is unreachable",
   })
 
   test("#given a task with recent activity #when every session call rejects as unreachable #then the task keeps running and the parent is not told", async () => {
-    nowSpy.mockReturnValue(FIXED_NOW)
-    const task = runningTask(new Date(FIXED_NOW - 5 * 60 * 1000))
+    const task = runningTask(minutesAgo(5))
 
     const notify = await sweep(task)
 
