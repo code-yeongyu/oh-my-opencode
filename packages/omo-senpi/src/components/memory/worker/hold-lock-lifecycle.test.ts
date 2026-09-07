@@ -73,6 +73,7 @@ describe("hold-lock fixture lifecycle", () => {
     const marker = join(root, "holder-exited.marker")
     const control = createServer()
     const connections = new Set<Socket>()
+    const firstConnection = new Promise<void>((resolve) => control.once("connection", () => resolve()))
     control.on("connection", (socket) => connections.add(socket))
     const port = await listenOnLoopback(control)
     const child = spawn(process.execPath, [holdLockFixture, join(root, "control.lock")], {
@@ -81,6 +82,11 @@ describe("hold-lock fixture lifecycle", () => {
     })
     try {
       await waitForReady(child)
+      // The holder connects to CONTROL_PORT after it prints readiness, so tearing the channel down
+      // on the readiness signal alone races the connect. Losing that race leaves the holder owning a
+      // socket accepted from the listen backlog that nobody ever closes, and the control branch is
+      // its only exit path, so it parks forever. Wait for the connection this test intends to close.
+      await firstConnection
       const exit = exitWithin(child, EXIT_TIMEOUT_MS)
 
       // when
