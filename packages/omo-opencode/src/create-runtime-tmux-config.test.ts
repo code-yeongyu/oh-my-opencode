@@ -2,7 +2,7 @@
 
 import { describe, expect, test } from "bun:test"
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, rmSync } from "node:fs"
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
@@ -31,6 +31,10 @@ describe("createRuntimeTmuxConfig", () => {
           format: "esm",
         })
         expect(build.success).toBe(true)
+        // Bun.build writes .js with no package.json beside it, so node resolves the module type from
+        // the nearest ancestor. tmpdir() is inside the user profile on Windows, so that ancestor is the
+        // developer own package.json and node warns on stderr about it, which this test reads as output.
+        writeFileSync(join(outdir, "package.json"), JSON.stringify({ type: "module" }))
 
         const result = spawnSync(Bun.which("node") ?? "node", [
           "--input-type=module",
