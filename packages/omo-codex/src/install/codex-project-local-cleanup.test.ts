@@ -183,6 +183,10 @@ describe("codex project-local cleanup", () => {
     const globalConfigPath = join(codexHome, "config.toml")
     await mkdir(projectDirectory, { recursive: true })
     await mkdir(codexHome, { recursive: true })
+    // tmpdir() is inside the user profile on Windows, so without a project boundary the upward walk
+    // leaves the fixture and reaches the developer real ~/.codex. The marker keeps the walk inside
+    // the sandbox; the configured codexHome still sits in the parent chain being exercised.
+    await mkdir(join(homeRoot, ".git"), { recursive: true })
     await writeFile(
       globalConfigPath,
       [

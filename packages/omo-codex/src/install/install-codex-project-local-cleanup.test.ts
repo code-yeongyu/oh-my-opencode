@@ -98,6 +98,10 @@ describe("install-codex project-local cleanup", () => {
     const repoRoot = await createPackagedCodexRepoRoot()
     await mkdir(projectDirectory, { recursive: true })
     await mkdir(codexHome, { recursive: true })
+    // tmpdir() is inside the user profile on Windows, so without a project boundary the upward walk
+    // leaves the fixture and reaches the developer real ~/.codex. The marker keeps the walk inside
+    // the sandbox; the configured codexHome still sits in the parent chain being exercised.
+    await mkdir(join(homeRoot, ".git"), { recursive: true })
     // A pinned v1 model keeps the legacy cap raise observable; the stamped
     // v2-preferred default would remove agents.max_threads instead.
     await writeFile(
