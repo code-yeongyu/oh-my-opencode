@@ -35,7 +35,8 @@ function launch(options, sandbox, env, sessionFile, phase, processes) {
   const args = [options.senpiCli, "--mode", "rpc", "--no-extensions", "--no-skills", "--no-prompt-templates",
     "-e", join(sandbox.root, "extension.mjs"), "--session", sessionFile, "--session-dir", join(sandbox.agentDir, "sessions")]
   const child = spawn(process.execPath, args, { cwd: sandbox.cwd,
-    env: { ...env, OMO_DAG_SCOPE_FIXTURE: JSON.stringify({ ...config, phase, readyFd: 3 }) }, detached: true, stdio: ["pipe", "pipe", "pipe", "pipe"] })
+    env: { ...env, OMO_DAG_SCOPE_FIXTURE: JSON.stringify({ ...config, phase, readyFd: 3 }) },
+    detached: process.platform !== "win32", windowsHide: true, stdio: ["pipe", "pipe", "pipe", "pipe"] })
   const pending = new Map()
   const ready = new Map()
   const readyWaiters = new Map()
@@ -92,13 +93,33 @@ function launch(options, sandbox, env, sessionFile, phase, processes) {
       })
     },
     async stop() {
-      if (child.exitCode === null && child.signalCode === null) process.kill(-child.pid, "SIGTERM")
-      const timer = setTimeout(() => { try { process.kill(-child.pid, "SIGKILL") } catch (error) { if (error.code !== "ESRCH") throw error } }, 5000)
+      if (child.exitCode === null && child.signalCode === null) signalTree(child.pid, "SIGTERM")
+      const timer = setTimeout(() => signalTree(child.pid, "SIGKILL"), 5000)
       try { return await close } finally { clearTimeout(timer) }
     },
   }
   processes.push(runtime)
   return runtime
+}
+
+export function signalTree(pid, signal) {
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/pid", String(pid), "/T", signal === "SIGKILL" ? "/F" : "/T"], { stdio: "ignore" })
+    return
+  }
+  try { process.kill(-pid, signal) } catch (error) { if (error.code !== "ESRCH") throw error }
+}
+
+export function isAlive(pid) {
+  try { process.kill(pid, 0); return true } catch (error) { return error.code === "EPERM" }
+}
+
+export function scanSurvivors(pids, marker) {
+  const owned = pids.filter(isAlive).map((pid) => `pid ${pid}`)
+  if (process.platform === "win32") return { exit: 0, survivors: owned }
+  const ps = spawnSync("ps", ["-axo", "pid=,args="], { encoding: "utf8" })
+  const referenced = (ps.stdout ?? "").split("\n").filter((line) => line.includes(marker))
+  return { exit: ps.status, survivors: [...owned, ...referenced] }
 }
 
 export function seedSession(path, id, cwd) {
@@ -200,15 +221,16 @@ export async function run(options) {
     if (existsSync(receipt)) facts.lifecycle = entries(receipt)
     facts.stderr = processes.map((cli) => cli.stderr())
     facts.commands = processes.map((cli) => [process.execPath, ...cli.args])
-    const ps = spawnSync("ps", ["-axo", "pid=,args="], { encoding: "utf8" })
-    const survivors = ps.stdout.split("\n").filter((line) => line.includes(sandbox.root))
+    const scan = scanSurvivors(processes.map((cli) => cli.child.pid), sandbox.root)
+    const survivors = scan.survivors
     const credentialsAfter = protectedDirs.map((dir) => credentialDigest(dir))
     rmSync(sandbox.root, { recursive: true, force: true })
-    facts.cleanup = { exits: receipts, processScanExit: ps.status, survivors, sandboxRemoved: !existsSync(sandbox.root),
+    facts.cleanup = { exits: receipts, processScanExit: scan.exit, survivors, sandboxRemoved: !existsSync(sandbox.root),
       ownedTransport: "stdio pipes only, including fixture readiness fd 3; no driver server or socket",
+      survivorCheck: process.platform === "win32" ? "owned pid liveness (taskkill /T tree termination)" : "owned pid liveness plus ps scan for the sandbox root",
       protectedCredentialsUnchanged: credentialsAfter.every((digest, i) => digest === credentialsBefore[i]),
       observationLimit: "Protected credential/config digest only; no claim of a whole-home audit." }
-    facts.ok = !facts.error && facts.selection?.ok === true && ps.status === 0 && survivors.length === 0 && facts.cleanup.sandboxRemoved && facts.cleanup.protectedCredentialsUnchanged
+    facts.ok = !facts.error && facts.selection?.ok === true && scan.exit === 0 && survivors.length === 0 && facts.cleanup.sandboxRemoved && facts.cleanup.protectedCredentialsUnchanged
     facts.exitCode = facts.ok ? 0 : 1
     // All runtime data is synthetic; replace machine-specific roots before writing public receipts.
     const publicFacts = JSON.parse(JSON.stringify(facts).replaceAll(sandbox.root, "<sandbox>").replaceAll(root, "<repo>").replaceAll(homedir(), "<home>"))
