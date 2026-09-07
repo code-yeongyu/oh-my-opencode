@@ -26,7 +26,7 @@ import {
 
 import type { IdleInjectionCoordinator } from "../../extension/idle-injection-coordinator"
 import type { ComponentLogger, SenpiExtensionAPI } from "../../extension/types"
-import { readDagForkSource } from "./dag-fork-source"
+import { resolveDagForkSource } from "./dag-fork-source"
 import { createDagRpcBridge, type DagBridgeTimers } from "./dag-rpc-bridge"
 import { registerDagRpcHandlers } from "./dag-rpc-handlers"
 import { createDagStatusUi, type DagStatusUiTimers } from "./dag-status-ui"
@@ -443,18 +443,18 @@ export function createDagRuntime(deps: DagRuntimeDeps): DagRuntime {
       const sessionId = activeSessionId
       if (sessionId !== undefined) {
         try {
-          let forkSourceSessionId: string | undefined
-          if (typeof event === "object" && event !== null && "reason" in event && event.reason === "fork") {
-            try {
-              forkSourceSessionId = await readDagForkSource("previousSessionFile" in event ? event.previousSessionFile : undefined)
-            } catch (error) {
-              deps.logger.warn("omo-senpi DAG fork source unavailable; recovering own runs only", {
-                sessionId,
-                error: error instanceof Error ? error.message : String(error),
-              })
-            }
+          const forkSource = await resolveDagForkSource({
+            event,
+            currentSessionId: sessionId,
+            currentSessionFile: deps.engine.runtime.sessionFile(),
+          })
+          if (forkSource.kind === "own-only" && forkSource.diagnostic !== undefined) {
+            deps.logger.warn("omo-senpi DAG fork source rejected; recovering own runs only", {
+              sessionId,
+              reason: forkSource.diagnostic,
+            })
           }
-          await recovery.resumePausedRuns(sessionId, forkSourceSessionId)
+          await recovery.resumePausedRuns(sessionId, forkSource.kind === "source" ? forkSource.sessionId : undefined)
         } finally {
           clearSubscriptions(recoveryTaskSubscriptions)
         }

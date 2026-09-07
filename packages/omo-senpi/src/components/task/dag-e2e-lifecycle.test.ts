@@ -193,8 +193,9 @@ type RuntimeFixtureOptions = {
   readonly coordinator?: IdleInjectionCoordinator
   readonly attach?: boolean
   readonly awaitAttach?: boolean
-  // A fork attaches under a different id with explicit source provenance.
+  // A fork attaches under a different id; its own session file header declares the source.
   readonly sessionId?: string
+  readonly sessionFile?: string
   readonly startEvent?: { readonly reason: "fork"; readonly previousSessionFile: string }
 }
 
@@ -240,7 +241,7 @@ async function runtimeFixture(options: RuntimeFixtureOptions = {}): Promise<Runt
   engine.runtime.captureFrom({
     mode: "tui",
     ui: fakeUi(widgetCalls),
-    sessionManager: { getSessionId: () => options.sessionId ?? sessionId },
+    sessionManager: { getSessionId: () => options.sessionId ?? sessionId, getSessionFile: () => options.sessionFile },
     isIdle: () => options.idle ?? false,
   })
   const bridgeTimers = new ManualTimers()
@@ -513,11 +514,13 @@ describe("assembled DAG lifecycle end to end", () => {
 
     const previousSessionFile = join(project, "fork-source.jsonl")
     fs.writeFileSync(previousSessionFile, JSON.stringify({ type: "session", id: sessionId }) + "\n")
+    const adopterSessionFile = join(project, "fork-adopter.jsonl")
+    fs.writeFileSync(adopterSessionFile, JSON.stringify({ type: "session", id: "session-adopter", parentSession: previousSessionFile }) + "\n")
 
     // when a real fork from the paused source attaches under a new id
     const adopterRunner = new ControlledRunner()
     const adopter = await runtimeFixture({
-      project, runner: adopterRunner, sessionId: "session-adopter", awaitAttach: false,
+      project, runner: adopterRunner, sessionId: "session-adopter", sessionFile: adopterSessionFile, awaitAttach: false,
       startEvent: { reason: "fork", previousSessionFile },
     })
     const adopted = await Promise.race([

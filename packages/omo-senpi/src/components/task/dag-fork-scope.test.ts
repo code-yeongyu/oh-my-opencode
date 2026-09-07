@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test"
+import { createHash } from "node:crypto"
 import * as fs from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -13,7 +14,12 @@ import { wireDagLifecycle } from "./index"
 const cleanups: Array<() => void> = []
 afterEach(() => { for (const cleanup of cleanups.splice(0).reverse()) cleanup() })
 
-function fixture() {
+interface FixtureOptions {
+  readonly currentHeader?: Record<string, unknown>
+  readonly sessionFileKnown?: boolean
+}
+
+function fixture(options: FixtureOptions = {}) {
   const cwd = fs.mkdtempSync(join(tmpdir(), "dag-fork-scope-"))
   cleanups.push(() => fs.rmSync(cwd, { recursive: true, force: true }))
   const pi = new FakeExtensionAPI()
@@ -27,11 +33,16 @@ function fixture() {
   const parentFile = join(cwd, "source.jsonl")
   const currentFile = join(cwd, "current.jsonl")
   fs.writeFileSync(parentFile, JSON.stringify({ type: "session", version: 3, id: "A", parentSession: join(cwd, "ancestor.jsonl") }) + "\n")
-  fs.writeFileSync(currentFile, JSON.stringify({ type: "session", version: 3, id: "C", parentSession: parentFile }) + "\n")
+  const currentHeader = options.currentHeader ?? { type: "session", version: 3, id: "C", parentSession: parentFile }
+  fs.writeFileSync(currentFile, JSON.stringify(currentHeader) + "\n")
   fs.writeFileSync(join(cwd, "ancestor.jsonl"), JSON.stringify({ type: "session", version: 3, id: "ancestor" }) + "\n")
+  const unrelatedFile = join(cwd, "unrelated.jsonl")
+  fs.writeFileSync(unrelatedFile, JSON.stringify({ type: "session", version: 3, id: "B" }) + "\n")
   const context = {
-    sessionManager: { getSessionId: () => "C", getSessionFile: () => currentFile,
-      getHeader: () => ({ type: "session", id: "C", parentSession: parentFile }) },
+    sessionManager: {
+      getSessionId: () => "C",
+      getSessionFile: () => (options.sessionFileKnown === false ? undefined : currentFile),
+    },
   }
   wireDagLifecycle(pi, runtime, () => {
     pi.on("session_start", () => engine.runtime.captureFrom(context))
@@ -55,8 +66,10 @@ function fixture() {
     result: store.readResult(id, "done"),
   })
   const dispatch = (event: unknown) => pi.dispatch("session_start", event, context)
-  return { cwd, pi, runtime, store, seed, bytes, dispatch, parentFile, warnings }
+  return { cwd, pi, runtime, store, seed, bytes, dispatch, parentFile, unrelatedFile, warnings }
 }
+
+const sha256 = (path: string) => createHash("sha256").update(fs.readFileSync(path)).digest("hex")
 
 describe("fork-only DAG session-start scope", () => {
   test.each(["startup", "new", "resume", "reload"])("#given persistent ancestry #when reason=%s #then ordinary C leaves A untouched", async (reason) => {
@@ -87,7 +100,44 @@ describe("fork-only DAG session-start scope", () => {
     expect(f.warnings).toEqual([])
   })
 
-  test.each(["missing", "absent", "malformed", "empty-id", "wrong-type", "oversized", "directory"])("#given %s fork provenance #when C forks #then A stays untouched with a diagnostic", async (kind) => {
+  test("#given a fork event without previousSessionFile #when C's header declares its parent #then the declared source recovers", async () => {
+    const f = fixture()
+    const source = await f.seed("A", process.pid)
+    const own = await f.seed("C")
+    await f.dispatch({ type: "session_start", reason: "fork" })
+    expect(f.runtime.manager.list("C").map((run) => run.runId).sort()).toEqual([source, own].sort())
+    expect(f.store.readCheckpoint<DagRunRecordV1>(source)?.parentSessionId).toBe("C")
+    expect(f.warnings).toEqual([])
+  })
+
+  test("#given a fork event naming an unrelated session file #when C forks #then that file never authorizes adoption", async () => {
+    const f = fixture()
+    const source = await f.seed("A", process.pid)
+    const unrelated = await f.seed("B", process.pid)
+    const own = await f.seed("C")
+    const untouched = [source, unrelated].map((id) => [id, f.bytes(id)] as const)
+    await f.dispatch({ type: "session_start", reason: "fork", previousSessionFile: f.unrelatedFile })
+    for (const [id, before] of untouched) expect(f.bytes(id)).toEqual(before)
+    expect(f.runtime.manager.list("C").map((run) => run.runId)).toEqual([own])
+    expect(f.warnings).toHaveLength(1)
+    expect(JSON.stringify(f.warnings[0])).toContain("does not match the session's declared parent")
+  })
+
+  test.each([
+    ["no declared parent", { currentHeader: { type: "session", version: 3, id: "C" } }],
+    ["unknown session file", { sessionFileKnown: false }],
+  ] as const)("#given a fork with %s #when C forks #then A stays untouched with a diagnostic", async (_label, options) => {
+    const f = fixture(options)
+    const source = await f.seed("A", process.pid)
+    const own = await f.seed("C")
+    const before = f.bytes(source)
+    await f.dispatch({ type: "session_start", reason: "fork", previousSessionFile: f.parentFile })
+    expect(f.bytes(source)).toEqual(before)
+    expect(f.runtime.manager.list("C").map((run) => run.runId)).toEqual([own])
+    expect(f.warnings).toHaveLength(1)
+  })
+
+  test.each(["absent", "malformed", "empty-id", "wrong-type", "oversized", "directory"])("#given %s fork provenance #when C forks #then A stays untouched with a diagnostic", async (kind) => {
     const f = fixture()
     const source = await f.seed("A", process.pid)
     const own = await f.seed("C")
@@ -98,22 +148,22 @@ describe("fork-only DAG session-start scope", () => {
     if (kind === "wrong-type") fs.writeFileSync(f.parentFile, JSON.stringify({ type: "message", id: "A" }) + "\n")
     if (kind === "oversized") fs.writeFileSync(f.parentFile, JSON.stringify({ type: "session", id: "A", padding: "x".repeat(128 * 1024) }) + "\n")
     if (kind === "directory") { fs.unlinkSync(f.parentFile); fs.mkdirSync(f.parentFile) }
-    await f.dispatch({ type: "session_start", reason: "fork", ...(kind === "missing" ? {} : { previousSessionFile: f.parentFile }) })
+    await f.dispatch({ type: "session_start", reason: "fork", previousSessionFile: f.parentFile })
     expect(f.bytes(source)).toEqual(before)
     expect(f.store.readCheckpoint<DagRunRecordV1>(own)?.status).toBe("completed")
     expect(f.warnings).toHaveLength(1)
   })
 
-  test("#given a huge transcript after a valid header #when C forks #then the immediate source is read without rewriting or scanning the transcript", async () => {
+  test("#given a long transcript after a valid header #when C forks #then the immediate source is read without rewriting the transcript", async () => {
     const f = fixture()
     const source = await f.seed("A", process.pid)
-    // A sparse transcript makes whole-file reads observably inappropriate without allocating it.
-    fs.truncateSync(f.parentFile, 512 * 1024 * 1024)
-    const before = fs.statSync(f.parentFile)
+    const transcriptLine = JSON.stringify({ type: "message", id: "m", text: "x".repeat(1000) }) + "\n"
+    fs.appendFileSync(f.parentFile, transcriptLine.repeat(1024))
+    const before = { size: fs.statSync(f.parentFile).size, digest: sha256(f.parentFile) }
     await f.dispatch({ type: "session_start", reason: "fork", previousSessionFile: f.parentFile })
     expect(f.store.readCheckpoint<DagRunRecordV1>(source)?.parentSessionId).toBe("C")
-    expect(fs.statSync(f.parentFile).size).toBe(before.size)
-    expect(fs.statSync(f.parentFile).mtimeMs).toBe(before.mtimeMs)
+    expect(before.size).toBeGreaterThan(1024 * 1024)
+    expect({ size: fs.statSync(f.parentFile).size, digest: sha256(f.parentFile) }).toEqual(before)
     expect(f.warnings).toEqual([])
   })
 
