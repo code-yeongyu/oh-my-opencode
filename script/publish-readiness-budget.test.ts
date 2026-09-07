@@ -2,6 +2,7 @@
 
 import { describe, expect, test } from "bun:test"
 import { spawnSync } from "node:child_process"
+import { testBashCommand } from "./test-bash-command"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -62,7 +63,7 @@ function runReadiness(readyAfterViews: number): Outcome {
     ].join("\n")
     const script = join(root, "readiness.sh")
     writeFileSync(script, preamble + readinessRunBlock())
-    const result = spawnSync("bash", [script], {
+    const result = spawnSync(testBashCommand(), [script], {
       encoding: "utf8",
       env: { ...process.env, COUNTER: counter, SLEEPS: sleeps, READY_AFTER: String(readyAfterViews), OMO_AI_VERSION: "5.0.0-0.beta.42", ALREADY_PUBLISHED: "false" },
     })

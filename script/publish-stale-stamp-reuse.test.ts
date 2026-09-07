@@ -2,6 +2,7 @@
 
 import { describe, expect, test } from "bun:test"
 import { spawnSync } from "node:child_process"
+import { testBashCommand } from "./test-bash-command"
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -68,7 +69,7 @@ function runPrepare(fixture: Fixture, version: string): { status: number; stdout
   writeFileSync(outputFile, "")
   const script = join(fixture.root, "prepare.sh")
   writeFileSync(script, prepareRunBlock())
-  const result = spawnSync("bash", [script], {
+  const result = spawnSync(testBashCommand(), [script], {
     cwd: fixture.work,
     encoding: "utf8",
     env: { ...process.env, GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_SYSTEM: "/dev/null", VERSION: version, OMO_AI_VERSION: version, RELEASE_REF: "dev", PREPARED_RELEASE_SHA: "", GITHUB_SHA: "", GITHUB_OUTPUT: outputFile },

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { spawnSync } from "node:child_process"
+import { testBashCommand } from "./test-bash-command"
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
@@ -177,7 +178,7 @@ describe("GitHub workflow job summaries", () => {
     const summaryPath = join(tempDir, "summary.md")
     writeFileSync(summaryPath, "")
 
-    const result = spawnSync("bash", [".github/scripts/write-job-summary.sh"], {
+    const result = spawnSync(testBashCommand(), [".github/scripts/write-job-summary.sh"], {
       cwd: new URL("..", import.meta.url),
       encoding: "utf8",
       env: {
