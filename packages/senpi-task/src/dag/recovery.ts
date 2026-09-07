@@ -37,7 +37,7 @@ type RecoverableRecord = DagRunRecordV1 & {
 
 export type DagRecoveryOutcome = {
   readonly runId: DagRunId
-  // "adopted" is a resume that also re-homed a foreign orphaned run to the resuming session (#7316).
+  // "adopted" is a resume that re-homed an eligible immediate fork-source run.
   readonly kind: "resumed" | "adopted" | "skipped"
   readonly record?: DagRunRecordV1
   readonly reusedOutputs?: ReadonlyMap<DagNodeId, string>
@@ -60,7 +60,7 @@ export type DagRecoveryOptions = {
 
 export type DagRecovery = {
   readonly pauseRunsForShutdown: (parentSessionId: string) => readonly DagRunId[]
-  readonly resumePausedRuns: (parentSessionId: string) => Promise<readonly DagRecoveryOutcome[]>
+  readonly resumePausedRuns: (parentSessionId: string, forkSourceSessionId?: string) => Promise<readonly DagRecoveryOutcome[]>
 }
 
 type RecoveryContext = Required<Pick<DagRecoveryOptions, "store" | "taskManager">> & {
@@ -96,7 +96,7 @@ export function createDagRecovery(options: DagRecoveryOptions): DagRecovery {
 
   return {
     pauseRunsForShutdown: (parentSessionId) => pauseRunsForShutdown(context, parentSessionId),
-    resumePausedRuns: (parentSessionId) => resumePausedRuns(context, parentSessionId),
+    resumePausedRuns: (parentSessionId, forkSourceSessionId) => resumePausedRuns(context, parentSessionId, forkSourceSessionId),
   }
 }
 
@@ -122,12 +122,15 @@ function pauseRunsForShutdown(context: RecoveryContext, parentSessionId: string)
 async function resumePausedRuns(
   context: RecoveryContext,
   parentSessionId: string,
+  forkSourceSessionId?: string,
 ): Promise<readonly DagRecoveryOutcome[]> {
   const outcomes: DagRecoveryOutcome[] = []
+  const forkSource = normalizeSessionId(forkSourceSessionId)
   for (const observed of listRunRecords(context.store)) {
     const foreign = observed.parentSessionId !== parentSessionId
+    if (foreign && (forkSource === undefined || normalizeSessionId(observed.parentSessionId) !== forkSource)) continue
     const claim = foreign
-      ? claimOrphanedRun(context, observed.runId, parentSessionId)
+      ? claimOrphanedRun(context, observed, parentSessionId)
       : claimPausedRun(context, observed.runId, parentSessionId)
     if (claim.kind === "skipped") {
       if (!foreign && claim.reason === "live_lease") {
@@ -141,17 +144,19 @@ async function resumePausedRuns(
   return outcomes
 }
 
-// #7316: a paused run whose parent session id never comes back (fork, compaction, or a restart
-// under a new id) was skipped as foreign_session forever - invisible AND unrecoverable. Adoption
-// is gated on PROOF of abandonment: the recorded lease holder is this very process, or a pid that
-// is no longer alive. An ABSENT holder proves nothing (a pause recorded inside a live foreign
-// session carries no pid), so those records stay untouched rather than stolen from a session that
-// may still be running.
-function claimOrphanedRun(context: RecoveryContext, runId: DagRunId, parentSessionId: string): ClaimedRun {
+function normalizeSessionId(sessionId: string | undefined): string | undefined {
+  const trimmed = sessionId?.trim()
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed
+}
+
+// Only an immediate fork source can be adopted, and its recorded holder must still prove
+// abandonment. Missing holders and live foreign processes remain protected.
+function claimOrphanedRun(context: RecoveryContext, observed: RecoverableRecord, parentSessionId: string): ClaimedRun {
+  const runId = observed.runId
   return context.store.withRunLock(runId, () => {
     const fresh = context.store.readCheckpoint<RecoverableRecord>(runId)
     if (fresh === null || fresh.status !== "paused") return { kind: "skipped", reason: "not_paused" }
-    if (fresh.parentSessionId === parentSessionId) return { kind: "skipped", reason: "not_paused" }
+    if (fresh.parentSessionId !== observed.parentSessionId) return { kind: "skipped", reason: "foreign_session" }
     const holder = fresh.leaseHolderPid ?? fresh.previousLeaseHolderPid
     if (holder === undefined) return { kind: "skipped", reason: "foreign_session" }
     if (holder !== context.hostPid && context.isProcessAlive(holder)) {

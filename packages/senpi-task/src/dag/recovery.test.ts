@@ -330,7 +330,7 @@ describe("DAG crash recovery", () => {
     expect(manager.startOwnedCalls).toEqual([])
   })
 
-  test("#given a paused run owned by a dead foreign session #when recovery adopts it #then the resume is journaled on the run's own ledger", async () => {
+  test("#given a paused run owned by a dead foreign session #when its fork adopts it #then the resume is journaled on the run's own ledger", async () => {
     // given - this exact configuration used to pin the orphaning as correct (skipped, still
     // paused); adoption retargets it to the journal contract: an adopted run carries a real
     // dag.run.resumed event, not just a rewritten checkpoint.
@@ -347,7 +347,7 @@ describe("DAG crash recovery", () => {
       taskManager: new RecoveryTaskManager(),
       hostPid: 101,
       isProcessAlive: () => false,
-    }).resumePausedRuns(parentSessionId)
+    }).resumePausedRuns(parentSessionId, "foreign-session")
 
     // then
     expect(outcomes.map((outcome) => outcome.kind)).toEqual(["adopted"])
@@ -670,8 +670,8 @@ describe("DAG recovery attempt-scoped ownership", () => {
 // when its recorded lease holder is provably gone (dead pid) or is this very process; an absent
 // holder proves nothing (a residency-denied pause in a LIVE foreign session has no pid), so it
 // must stay untouched.
-describe("resumePausedRuns adoption", () => {
-  test("#given a foreign paused run with a dead lease holder #when a new session resumes #then it adopts, re-homes, and completes the run", async () => {
+describe("resumePausedRuns immediate fork-source adoption", () => {
+  test("#given a foreign paused run with a dead lease holder #when a fork from that session resumes #then it adopts, re-homes, and completes the run", async () => {
     // given
     const store = createDagFileStore({ project_dir: tempProject() })
     store.writeCheckpoint(runId, recoverableRecord(definition([node("adopt-me")]), {}, {
@@ -686,7 +686,7 @@ describe("resumePausedRuns adoption", () => {
       taskManager: new RecoveryTaskManager(),
       hostPid: 101,
       isProcessAlive: () => false,
-    }).resumePausedRuns(parentSessionId)
+    }).resumePausedRuns(parentSessionId, "session-gone")
 
     // then the run is re-homed to the adopter and resumed instead of orphaned
     expect(outcomes.map((outcome) => outcome.kind)).toEqual(["adopted"])
@@ -697,7 +697,7 @@ describe("resumePausedRuns adoption", () => {
     expect(rehomed?.status).not.toBe("paused")
   })
 
-  test("#given a foreign paused run whose lease holder is alive #when another session resumes #then the run is left untouched", async () => {
+  test("#given a foreign paused run whose lease holder is alive #when a fork from that session resumes #then the run is left untouched", async () => {
     // given a foreign session that is still running (its pause is mid-resume or residency-held)
     const store = createDagFileStore({ project_dir: tempProject() })
     store.writeCheckpoint(runId, recoverableRecord(definition([node("held")]), {}, {
@@ -712,7 +712,7 @@ describe("resumePausedRuns adoption", () => {
       taskManager: new RecoveryTaskManager(),
       hostPid: 101,
       isProcessAlive: (pid) => pid === 9001,
-    }).resumePausedRuns(parentSessionId)
+    }).resumePausedRuns(parentSessionId, "session-alive")
 
     // then
     expect(outcomes).toEqual([])
@@ -721,7 +721,7 @@ describe("resumePausedRuns adoption", () => {
     expect(untouched?.status).toBe("paused")
   })
 
-  test("#given a foreign paused run with no recorded lease holder #when another session resumes #then abandonment is unproven and the run is left untouched", async () => {
+  test("#given a foreign paused run with no recorded lease holder #when a fork from that session resumes #then abandonment is unproven and the run is left untouched", async () => {
     // given a paused record that never went through the shutdown pause (no pid on record)
     const store = createDagFileStore({ project_dir: tempProject() })
     store.writeCheckpoint(runId, recoverableRecord(definition([node("unproven")]), {}, {
@@ -735,7 +735,7 @@ describe("resumePausedRuns adoption", () => {
       taskManager: new RecoveryTaskManager(),
       hostPid: 101,
       isProcessAlive: () => false,
-    }).resumePausedRuns(parentSessionId)
+    }).resumePausedRuns(parentSessionId, "session-unknown")
 
     // then
     expect(outcomes).toEqual([])
@@ -744,7 +744,7 @@ describe("resumePausedRuns adoption", () => {
     expect(untouched?.status).toBe("paused")
   })
 
-  test("#given a foreign paused run whose lease holder is this process #when it resumes #then self-adoption is safe and the run completes", async () => {
+  test("#given a foreign paused run whose lease holder is this process #when its fork resumes #then self-adoption is safe and the run completes", async () => {
     // given a run this very process paused under a previous session id (alive, but it is us)
     const store = createDagFileStore({ project_dir: tempProject() })
     store.writeCheckpoint(runId, recoverableRecord(definition([node("self")]), {}, {
@@ -759,7 +759,7 @@ describe("resumePausedRuns adoption", () => {
       taskManager: new RecoveryTaskManager(),
       hostPid: 101,
       isProcessAlive: () => true,
-    }).resumePausedRuns(parentSessionId)
+    }).resumePausedRuns(parentSessionId, "session-previous")
 
     // then
     expect(outcomes.map((outcome) => outcome.kind)).toEqual(["adopted"])
