@@ -167,4 +167,18 @@ describe("automatic recovery candidate scope", () => {
     expect(await recovering.resumePausedRuns("C")).toEqual([])
     expect(bytes(store, leftover)).toEqual(before)
   })
+
+  test.each(["", "  "])("#given a blank fork source %p and a legacy record with a blank owner #when C forks #then nothing is claimed or touched", async (source) => {
+    const store = fixture()
+    const legacy = await seed(store, "A", 9001)
+    const record = store.readCheckpoint<DagRunRecordV1>(legacy)
+    if (record === null) throw new Error("missing legacy fixture")
+    store.writeCheckpoint(legacy, { ...record, parentSessionId: "", rootSessionId: "" })
+    const before = bytes(store, legacy)
+    const tasks = new SettledTasks()
+    expect(await recovery(store, tasks).resumePausedRuns("C", source)).toEqual([])
+    expect(bytes(store, legacy)).toEqual(before)
+    expect(tasks.starts).toEqual([])
+    expect(tasks.touches).toEqual([])
+  })
 })

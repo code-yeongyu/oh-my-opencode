@@ -125,9 +125,10 @@ async function resumePausedRuns(
   forkSourceSessionId?: string,
 ): Promise<readonly DagRecoveryOutcome[]> {
   const outcomes: DagRecoveryOutcome[] = []
+  const forkSource = normalizeSessionId(forkSourceSessionId)
   for (const observed of listRunRecords(context.store)) {
     const foreign = observed.parentSessionId !== parentSessionId
-    if (foreign && observed.parentSessionId !== forkSourceSessionId) continue
+    if (foreign && (forkSource === undefined || normalizeSessionId(observed.parentSessionId) !== forkSource)) continue
     const claim = foreign
       ? claimOrphanedRun(context, observed, parentSessionId)
       : claimPausedRun(context, observed.runId, parentSessionId)
@@ -141,6 +142,11 @@ async function resumePausedRuns(
     outcomes.push(foreign && outcome.kind === "resumed" ? { ...outcome, kind: "adopted" } : outcome)
   }
   return outcomes
+}
+
+function normalizeSessionId(sessionId: string | undefined): string | undefined {
+  const trimmed = sessionId?.trim()
+  return trimmed === undefined || trimmed.length === 0 ? undefined : trimmed
 }
 
 // Only an immediate fork source can be adopted, and its recorded holder must still prove
