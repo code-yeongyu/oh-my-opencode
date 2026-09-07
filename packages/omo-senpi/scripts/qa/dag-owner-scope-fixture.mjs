@@ -29,6 +29,13 @@ export function seedRun(stateDir, runId, owner, holder) {
   return record
 }
 
+// Snapshot keys are the contract evaluate() matches against (`dag/runs/<id>.json`, ...), so they
+// must be posix-separated on every platform; node:path.relative yields backslashes on Windows.
+// The state tree is synthetic and never contains a backslash in a file name, so both separators fold.
+export function toPosixKey(relativePath) {
+  return relativePath.split(/[\\/]+/).join("/")
+}
+
 export function snapshot(stateDir) {
   const files = {}
   function visit(dir) {
@@ -36,7 +43,7 @@ export function snapshot(stateDir) {
     for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const path = join(dir, entry.name)
       if (entry.isDirectory()) visit(path)
-      else if (entry.isFile()) files[relative(stateDir, path)] = createHash("sha256").update(readFileSync(path)).digest("hex")
+      else if (entry.isFile()) files[toPosixKey(relative(stateDir, path))] = createHash("sha256").update(readFileSync(path)).digest("hex")
     }
   }
   visit(stateDir)

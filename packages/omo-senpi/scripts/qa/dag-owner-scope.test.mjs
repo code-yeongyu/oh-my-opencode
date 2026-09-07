@@ -5,6 +5,7 @@ import { createDagFileStore } from "../../../senpi-task/src/dag/store.ts"
 import { readDagNodeResult } from "../../../senpi-task/src/dag/results.ts"
 import { createSandbox } from "./drive.mjs"
 import { evaluate, selfTest } from "./dag-owner-scope.mjs"
+import * as fixture from "./dag-owner-scope-fixture.mjs"
 import { SESSION_A, SESSION_B, seedRun, snapshot } from "./dag-owner-scope-fixture.mjs"
 
 describe("synthetic DAG selection evidence", () => {
@@ -22,6 +23,20 @@ describe("synthetic DAG selection evidence", () => {
       expect(checkpoint.status).toBe("paused")
       expect(checkpoint.nodes.every((node) => node.state === "completed")).toBe(true)
       expect(result).toEqual({ output: "SYNTHETIC_COMPLETED_OUTPUT\n" })
+    } finally { rmSync(sandbox.root, { recursive: true, force: true }) }
+  })
+
+  test("snapshot keys use posix separators so evaluate() prefixes match on every platform", () => {
+    // given
+    const sandbox = createSandbox()
+    try {
+      seedRun(sandbox.root, "a", SESSION_A, 999999)
+      // when
+      const keys = Object.keys(snapshot(sandbox.root).files)
+      // then
+      expect(keys).toEqual(["dag/events/a.jsonl", "dag/results/a/done.txt", "dag/runs/a.json"])
+      expect(fixture.toPosixKey("dag\\events\\a.jsonl")).toBe("dag/events/a.jsonl")
+      expect(fixture.toPosixKey("dag/results/a/done.txt")).toBe("dag/results/a/done.txt")
     } finally { rmSync(sandbox.root, { recursive: true, force: true }) }
   })
 
