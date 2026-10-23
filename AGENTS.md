@@ -421,6 +421,8 @@ Adding `run-full-ci` or `ci:full-matrix` launches `ci-full-matrix-label.yml`, wh
 
 Never edit `CHANGELOG.md` or the root `changes.md` in a normal PR. A user-facing PR adds exactly one file, `changes/unreleased/<pr-number>.md` (body = the paragraph that used to go under `## [Unreleased]`, linking its own PR; notes that used to go in root `changes.md` go there too). Format: `docs/reference/changelog-fragments.md`. The `changelog-gate` workflow refuses any changelog touch on a normal PR and any edit to an existing fragment; the `no-changelog` label waives the fragment only for a PR with no user-facing paths. Only the release-state PR (branch `release/*`, opened by the release workflow as `sisyphus-dev-ai`) edits `CHANGELOG.md`: `script/stamp-release-changelog.ts` assembles the fragments into the release section and deletes them, and the PR may carry only the release artifacts listed in `script/changelog-gate.config.ts` (#9961).
 
+Package logs (`packages/<name>/changes.md`) are never edited in a PR either: add a `<!-- changes-log: packages/<name>/changes.md -->` block (heading `## YYYY-MM-DD - <title>`) to the same fragment after the paragraph. `script/compile-package-logs.ts compile` writes the blocks into their logs newest-first and keeps only the paragraph; the release stamp compiles any block still waiting. Convert an old branch with `bun script/compile-package-logs.ts from-diff --base origin/dev --pr <n>`.
+
 ## PR MERGE POLICY
 
 - **PRs into `dev` MUST use merge commits.**

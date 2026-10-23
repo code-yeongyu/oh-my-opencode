@@ -2,6 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { checkPrChangelog, fetchBaseIfMissing, FRAGMENT_DIR, fragmentPath } from "./changelog-gate-rules.ts";
 import { GATE_CONFIG } from "./changelog-gate.config.ts";
+import { checkPackageLogs } from "./package-log-gate.ts";
 import { isReleaseStatePr } from "./release-pr-marker.ts";
 
 function run(): number {
@@ -60,7 +61,7 @@ function run(): number {
   // changelog already exists, and an added changelog is read from the head blob with its mode.
   const existsAt = (rev: string, path: string): boolean => {
     try {
-      git("cat-file", "-e", `${rev}:${path}`);
+      execFileSync("git", ["cat-file", "-e", `${rev}:${path}`], { stdio: "ignore" });
       return true;
     } catch {
       return false;
@@ -78,7 +79,15 @@ function run(): number {
     GATE_CONFIG,
   );
   console.log(`changelog-gate: ${result.pass ? "PASS" : "FAIL"} - ${result.reason}`);
-  return result.pass ? 0 : 1;
+  const packageLogs = checkPackageLogs({
+    addedFiles, modifiedFiles, deletedFiles,
+    // The SAME release predicate as the shared gate: the release marker AND the release branch AND the release actor (#10682 review HIGH).
+    isRelease: isReleaseWorkflow && GATE_CONFIG.releaseBranchPattern.test(branch) && GATE_CONFIG.releaseActors.some((releaseActor) => releaseActor === actor),
+    fragment: addedFragment?.content ?? null,
+    existsAtHead: (path) => existsAt(head, path),
+  });
+  console.log(`changelog-gate: package logs ${packageLogs.pass ? "PASS" : "FAIL"} - ${packageLogs.reason}`);
+  return result.pass && packageLogs.pass ? 0 : 1;
 }
 
 if (import.meta.main) {

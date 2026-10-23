@@ -9,6 +9,7 @@ import { readdir, rm } from "node:fs/promises"
 import { FRAGMENT_DIR, mergeUnreleased, parseFragment, readFragments, unreleasedBody } from "./changelog-fragments"
 import { stampUnreleased } from "./changelog-release-notes"
 import { assembleUnreleasedBody } from "./changelog-gate-rules.ts"
+import { compileBlocks, splitFragment } from "./package-log-blocks.ts"
 
 async function main(): Promise<void> {
   const version = process.argv[2]
@@ -30,15 +31,31 @@ async function main(): Promise<void> {
     return content
   })
   if (fragments.length === 0) throw new Error(`no changelog fragments under ${FRAGMENT_DIR}/ to release`)
+  // Package-log blocks the hourly compile has not written yet land in their logs in this commit;
+  // only each fragment's preamble goes into CHANGELOG.md.
+  const repoRoot = new URL("../", import.meta.url)
+  const logReads = new Map<string, string | null>()
+  for (const fragment of fragments) {
+    for (const block of splitFragment(fragment.content).blocks) {
+      const file = Bun.file(new URL(block.log, repoRoot))
+      logReads.set(block.log, (await file.exists()) ? await file.text() : null)
+    }
+  }
+  const compiled = compileBlocks(fragments, (path) => logReads.get(path) ?? null)
+  const preambles = fragments
+    .map((fragment) => ({ pr: fragment.pr, content: splitFragment(fragment.content).preamble }))
+    .filter((fragment) => fragment.content !== "")
+  if (preambles.length === 0) throw new Error(`no CHANGELOG paragraph in any fragment under ${FRAGMENT_DIR}/ to release`)
   const changelog = await Bun.file(changelogPath).text()
   const legacy = unreleasedBody(changelog)
-  const assembled = [legacy, assembleUnreleasedBody(fragments)].filter((part) => part.trim()).join("\n\n")
+  const assembled = [legacy, assembleUnreleasedBody(preambles)].filter((part) => part.trim()).join("\n\n")
   const existing = unreleasedBody(changelog)
   if (existing && existing !== assembled && existing !== legacy) {
     throw new Error(`## [Unreleased] holds content that is neither the legacy notes nor the fragment assembly`)
   }
   const stamped = stampUnreleased(mergeUnreleased(changelog, assembled), version, date)
   await Bun.write(changelogPath, stamped)
+  for (const [path, content] of compiled.logs) await Bun.write(new URL(path, repoRoot), content)
   // Delete by the file name read from disk, not the reconstructed `<pr>.md`: a leading-zero alias
   // parses as the same PR but deletes nothing if reconstructed.
   for (const name of names) {

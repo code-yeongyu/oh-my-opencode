@@ -17,5 +17,7 @@ export const GATE_CONFIG = {
     /^packages\/omo-codex\/plugin\/components\/[^/]+\/(?:package\.json|hooks\/hooks\.json)$/,
     /^packages\/omo-codex\/plugin\/hooks\/[^/]+\.json$/,
     /^packages\/omo-codex\/scripts\/install-dist\/install-local\.mjs$/,
+    // stamp-release-changelog.ts compiles package-log blocks the hourly job has not written yet.
+    /^packages\/[^/]+\/changes\.md$/,
   ],
 } as const;
