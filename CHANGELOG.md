@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Runtime fallback bootstraps an unknown session model from the last substantive user prompt before using configured agent defaults.** Compaction rows and synthetic retry continuations are ignored, while real retry-marked prompts retain their selected model. ([#10125](https://github.com/code-yeongyu/oh-my-openagent/pull/10125))
+
 **Memory reflection and dream runs trim oversized note descriptions before completion validation.** The note body is preserved, instead of the run failing again and again and parking the identity. ([#10999](https://github.com/code-yeongyu/oh-my-openagent/pull/10999))
 
 **The frontend skill now decides what a screen leaves out before drawing it, and visual QA proves a redesign improved and stops after a few rounds ([#11023](https://github.com/code-yeongyu/oh-my-openagent/pull/11023)).** Before code, every screen names one primary action, its information priorities, what it leaves out on purpose, and the content it must keep; after the draft renders, a subtraction pass removes what the user does not need and checks nothing required was dropped or merged. Small changes now read the project's design file and at most one reference instead of the whole library, and atmosphere and award-grade styling are built only when the brief asks. Visual QA gains a before/after mode that captures fixed cases before the first edit and compares them side by side, and its review loop now ends after 2-3 rounds: layout, function, accessibility and missing-content defects earn another round, taste notes are recorded and stop it.
