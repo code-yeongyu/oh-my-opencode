@@ -49,6 +49,19 @@ A source directory is immutable. Snapshotting the same id again with the same te
 
 A locator that finds nothing returns `fact_not_located`, more than one candidate `fact_ambiguous`, and nothing is written. Read the printed row and its 60 characters of context on each side before using it; a wrong row is retracted, never edited.
 
+## Meaning verdicts
+
+`ingestVerdicts(pairs, verdictFiles, options)` (`scripts/meaning-check.mjs`) folds the meaning readers' verdict files over the pairs of `extractPairs` and returns four lists:
+
+| Field | Holds |
+| --- | --- |
+| `defects` | one `meaning_drift_confirmed` (both tiers named the same kind, never `other`) or `meaning_drift_warn` (one tier) per flagged pair, in pair order; the fragment comes from the verdict whose kind is reported |
+| `dropped` | every verdict that was not accepted, with its file, pair, tier, and reason (unknown pair, invalid tier or verdict, unknown or empty drift kind, a fragment missing from the sentence or the source) |
+| `unverified` | every pair no reader judged (`no_verdict`) and every `force_strong` pair no strong reader judged (`no_strong_verdict`), in pair order; a dropped verdict does not count as read |
+| `calibrationLines` | one JSON line per flagged pair, appended to `fidelity-calibration.jsonl` when `calibrationPath` is given |
+
+Coverage is fail-closed. A consumer treats a non-empty `unverified` list as blocking: those pairs were never read, so an empty `defects` list does not mean the report is clean. An unreadable verdict path or invalid JSON raises a `TypeError` naming the file, which the CLI maps to exit code 2.
+
 ## Operations
 
 - `fact add --source S<n> <locator> --label <label>` registers a measured row; `fact add --assumed <value> --unit <unit> --rationale <why> --label <label>` registers an assumption.
