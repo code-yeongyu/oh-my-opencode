@@ -57,3 +57,23 @@ A locator that finds nothing returns `fact_not_located`, more than one candidate
 - `fact retract <id> --reason <why>` retires a row; `--replacement <id>` marks it superseded by another active row. Rows that depend on a retired row fail at fill time.
 - `fact export --csv --out <file>` writes `fact_id,label,plot_value,unit` for every active value row: the only data a chart may plot.
 - `fact fill <src> --out <file>` renders every placeholder from the ledger; `fact verify <file>` checks the filled edition against the ledger, the snapshots, and the claim index; `outcome set <format> delivered` records intent permissively, while the required `outcome verify` and `outcome finish` enforce the delivery barrier.
+- `fact pairs <file>` writes `pairs.json` for the meaning readers; `fact meaning-check --pairs pairs.json --verdicts <file> ...` ingests their verdicts.
+
+## Meaning verdicts
+
+`pairs.json` is `{ schemaVersion, skipped, report, format, artifact_sha256, pairs_sha256, counts, pairs }`. Each pair has `pair_id` (`P<n>` in document order), `kind` (`quote`, `claim`, or `translation`), `sentence_key`, `sentence`, `source_lang`, `report_lang`, `force_strong`, and either `fact_ids` with `quote` or `claim_id` with `statement`.
+
+A reader writes one verdict file per tier: `{ "model_tier": "cheap" | "strong", "verdicts": [...] }` (a bare array works when each verdict names its own `model_tier`). One verdict per pair:
+
+| Field | Value |
+| --- | --- |
+| `pair_id` | a `pair_id` from `pairs.json`; any other id is dropped (`unknown_pair`) |
+| `verdict` | `ok` or `drift` |
+| `drift_kind` | for `drift`, exactly one of `subject_changed`, `scope_widened`, `hedge_dropped`, `certainty_added`, `causality_added`, `direction_flipped`, `population_changed`, `evidence_grade_raised`, `other` |
+| `fragment` | for `drift`, a non-empty verbatim substring of the pair's `sentence` (whitespace-normalized) |
+| `source_fragment` | for `drift`, a non-empty verbatim substring of the pair's `quote` or `statement` |
+| `explanation` | one sentence, for the briefing; never read by the scripts |
+
+A verdict that breaks any rule is dropped and listed in the record's `dropped` with its reason; it never becomes a defect. Both tiers naming the same `drift_kind` other than `other` on one pair is `meaning_drift_confirmed` (major); one tier, or two tiers that disagree, is `meaning_drift_warn` (minor). `--dispute P<n> --reason` keeps the defect and marks its calibration line `disputed`.
+
+`fidelity-calibration.jsonl` starts with a header line `{ "header": true, "promotion": ... }` holding the promotion criterion, then one line per flagged pair: `kind`, `pair_id`, `tiers`, `drift_kind`, `confirmed`, `disputed`, `reason`, `run_id`, `pairs_sha256`. A run id (`--run-id`, or a hash of the inputs) is logged once, so re-running the same check appends nothing. The record's `promotion_eligibility` evaluates the criterion over the log.
