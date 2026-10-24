@@ -24,6 +24,7 @@ export interface BuildExtensionOptions {
   claimReceiptOutputPath?: string
   computerUseOutputPath?: string
   gatewayStoreWorkerOutputPath?: string
+  gatewayRulesExtensionOutputPath?: string
   threadSdkOutputPath?: string
 }
 export function buildExtension(options?: BuildExtensionOptions): Promise<{
@@ -52,6 +53,7 @@ export function buildExtension(options?: BuildExtensionOptions): Promise<{
   doriLayerInputs: string[]
   doriReplayInputs: string[]
   gatewayStoreWorkerInputs: string[]
+  gatewayRulesExtensionInputs: string[]
   threadSdkInputs: string[]
 }>
 export function checkExtensionCurrent(options?: BuildExtensionOptions): Promise<
