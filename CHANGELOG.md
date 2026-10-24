@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Account sharing now activates protocol-2 credentials through signed enrollment or fresh sign-in proof.** The CLI publishes one committed token and owner snapshot, reports unsupported services distinctly, and resumes pending revocations without overwriting a newer sign-in. Login, account commands and memory sync share the same credential authority. ([omo-service#628](https://github.com/sisyphuslabs/omo-service/issues/628))
+
 ### Fixed
 
 - An uncertain legacy account refresh now fails closed instead of replaying an unprovable attempt. Protocol-2 recovery retains one original key and absolute deadline, checks a suspend-inclusive clock and boot identity before every send, and publishes only a durably committed successor. Account token and device metadata come from the same locked snapshot. ([#10898](https://github.com/code-yeongyu/oh-my-openagent/pull/10898); custody integration [#11186](https://github.com/code-yeongyu/oh-my-openagent/pull/11186))
