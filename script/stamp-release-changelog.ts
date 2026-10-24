@@ -1,6 +1,14 @@
 #!/usr/bin/env bun
-/** Release-state step: stamp ## [Unreleased] into the released section for <version>. */
+/**
+ * Release-state step: assemble `changes/unreleased/*.md` into `## [Unreleased]`, stamp that
+ * section into the released section for <version>, and delete the consumed fragments — all in the
+ * release commit. Refuses to release an empty fragment set and refuses to silently drop
+ * hand-written Unreleased content: Unreleased is machine-assembled from fragments (#9961).
+ */
+import { readdir, rm } from "node:fs/promises"
+import { FRAGMENT_DIR, mergeUnreleased, parseFragment, readFragments, unreleasedBody } from "./changelog-fragments"
 import { stampUnreleased } from "./changelog-release-notes"
+import { assembleUnreleasedBody } from "./changelog-gate-rules.ts"
 
 async function main(): Promise<void> {
   const version = process.argv[2]
@@ -9,10 +17,34 @@ async function main(): Promise<void> {
     console.error("usage: bun script/stamp-release-changelog.ts <version> [YYYY-MM-DD]")
     process.exit(2)
   }
-  const path = new URL("../CHANGELOG.md", import.meta.url)
-  const stamped = stampUnreleased(await Bun.file(path).text(), version, date)
-  await Bun.write(path, stamped)
-  console.error(`stamped ## [${version}] - ${date}`)
+  const changelogPath = new URL("../CHANGELOG.md", import.meta.url)
+  const fragmentDir = new URL(`../${FRAGMENT_DIR}/`, import.meta.url)
+  const names = await readdir(fragmentDir)
+  // Every entry is validated (README.md allowed, <pr>.md required): a stray non-markdown name is
+  // refused here instead of being silently skipped at release time.
+  const contents = new Map<string, string>()
+  for (const name of names) contents.set(name, await Bun.file(new URL(name, fragmentDir)).text())
+  const fragments = readFragments(names, (name) => {
+    const content = contents.get(name)
+    if (content === undefined) throw new Error(`missing fragment file: ${name}`)
+    return content
+  })
+  if (fragments.length === 0) throw new Error(`no changelog fragments under ${FRAGMENT_DIR}/ to release`)
+  const changelog = await Bun.file(changelogPath).text()
+  const legacy = unreleasedBody(changelog)
+  const assembled = [legacy, assembleUnreleasedBody(fragments)].filter((part) => part.trim()).join("\n\n")
+  const existing = unreleasedBody(changelog)
+  if (existing && existing !== assembled && existing !== legacy) {
+    throw new Error(`## [Unreleased] holds content that is neither the legacy notes nor the fragment assembly`)
+  }
+  const stamped = stampUnreleased(mergeUnreleased(changelog, assembled), version, date)
+  await Bun.write(changelogPath, stamped)
+  // Delete by the file name read from disk, not the reconstructed `<pr>.md`: a leading-zero alias
+  // parses as the same PR but deletes nothing if reconstructed.
+  for (const name of names) {
+    if (parseFragment(name, contents.get(name) ?? "") !== null) await rm(new URL(name, fragmentDir))
+  }
+  console.error(`stamped ## [${version}] - ${date} from ${fragments.length} fragment(s): ${fragments.map((f) => `#${f.pr}`).join(", ")}`)
 }
 
 if (import.meta.main) await main()
