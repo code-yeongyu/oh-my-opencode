@@ -651,7 +651,7 @@ describe("SkillMcpManager", () => {
 
       // then
       expect(callCount).toBe(2)
-      expect(result).toEqual([{ type: "text", text: "success" }])
+      expect(result).toEqual({ content: [{ type: "text", text: "success" }] })
       expect(getOrCreateSpy).toHaveBeenCalledTimes(2)
     })
 
@@ -945,7 +945,7 @@ describe("SkillMcpManager", () => {
       const result = await manager.callTool(info, context, "test-tool", {})
 
       // then
-      expect(result).toEqual([{ type: "text", text: "success" }])
+      expect(result).toEqual({ content: [{ type: "text", text: "success" }] })
       expect(mockLogin).toHaveBeenCalled()
     })
 

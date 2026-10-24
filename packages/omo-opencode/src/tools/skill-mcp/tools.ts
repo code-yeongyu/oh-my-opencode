@@ -163,7 +163,10 @@ export function createSkillMcpTool(options: SkillMcpToolOptions): ToolDefinition
       switch (operation.type) {
         case "tool": {
           const result = await manager.callTool(info, context, operation.name, parsedArgs, cdpOptions)
-          output = JSON.stringify(result, null, 2)
+          if (result.isError === true) {
+            throw new Error(`MCP tool "${operation.name}" failed: ${JSON.stringify(result, null, 2)}`)
+          }
+          output = JSON.stringify(result.structuredContent !== undefined ? result : result.content, null, 2)
           break
         }
         case "resource": {

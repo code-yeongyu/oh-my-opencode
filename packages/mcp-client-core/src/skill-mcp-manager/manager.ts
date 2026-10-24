@@ -131,10 +131,9 @@ export class SkillMcpManager {
     name: string,
     args: Record<string, unknown>,
     options?: SkillMcpClientOptions
-  ): Promise<unknown> {
+  ): Promise<Awaited<ReturnType<McpClient["callTool"]>>> {
     return await this.withOperationRetry(info, context.config, options, async (client) => {
-      const result = await client.callTool({ name, arguments: args })
-      return result.content
+      return await client.callTool({ name, arguments: args })
     })
   }
 
